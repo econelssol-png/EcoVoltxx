@@ -1,0 +1,17 @@
+services:
+  ecovoltx:
+    build: .
+    container_name: ecovoltx-platform
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - JWT_SECRET=ecovoltx_production_jwt_secret_2026
+      - JWT_REFRESH_SECRET=ecovoltx_production_jwt_refresh_2026
+    volumes:
+      - ecovoltx_data:/app/server/data
+
+volumes:
+  ecovoltx_data:

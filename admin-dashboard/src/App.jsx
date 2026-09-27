@@ -1,0 +1,2062 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { io } from 'socket.io-client';
+import adminApi from './services/api';
+import './index.css';
+import {
+  LayoutDashboard,
+  Zap,
+  Users,
+  Calendar,
+  History,
+  DollarSign,
+  BarChart3,
+  BellRing,
+  Building,
+  Shield,
+  LogOut,
+  Plus,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Clock,
+  BatteryCharging,
+  Settings,
+  Download,
+  Send,
+  UserCheck,
+  CreditCard,
+  Check,
+  Sparkles,
+  ExternalLink
+} from 'lucide-react';
+
+export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [societiesList, setSocietiesList] = useState([]);
+  const [selectedSocietyId, setSelectedSocietyId] = useState(null);
+  const [currentTab, setCurrentTab] = useState('dashboard');
+  const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Data states
+  const [dashboardData, setDashboardData] = useState(null);
+  const [chargers, setChargers] = useState([]);
+  const [residents, setResidents] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [tariffs, setTariffs] = useState([]);
+  const [complaints, setComplaints] = useState([]);
+  const [superAdminData, setSuperAdminData] = useState(null);
+
+  // Subscription states
+  const [subscriptionData, setSubscriptionData] = useState(null);
+  const [platformSubscriptions, setPlatformSubscriptions] = useState(null);
+  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState(null);
+
+  // Modals & form states
+  const [showAddChargerModal, setShowAddChargerModal] = useState(false);
+  const [showAddSocietyModal, setShowAddSocietyModal] = useState(false);
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [showAssignAdminModal, setShowAssignAdminModal] = useState(false);
+  const [selectedSocietyForAdmin, setSelectedSocietyForAdmin] = useState(null);
+
+  // Notification / Alert message
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  // Demo accounts
+  const demoAccounts = [
+    { label: 'Super Admin (MRR & Platform)', email: 'superadmin@societycharge.com', role: 'super_admin' },
+    { label: 'Green Valley Admin (Pro Plan)', email: 'admin_gvr@test.com', role: 'society_admin' },
+    { label: 'Sunrise Towers Admin (Starter Plan)', email: 'admin_srt@test.com', role: 'society_admin' },
+  ];
+
+  // Quick switch login
+  const handleQuickLogin = async (email) => {
+    setLoading(true);
+    try {
+      const data = await adminApi.login(email, 'Password@123');
+      adminApi.setTokens(data.accessToken, data.refreshToken);
+      setCurrentUser(data.user);
+
+      if (data.user.role === 'super_admin') {
+        const sRes = await adminApi.getAllSocieties();
+        setSocietiesList(sRes.societies || []);
+        if (sRes.societies?.length > 0 && !selectedSocietyId) {
+          setSelectedSocietyId(sRes.societies[0].id);
+        }
+      } else if (data.memberships?.length > 0) {
+        setSelectedSocietyId(data.memberships[0].society_id);
+      }
+      showToast(`Logged in as ${data.user.name}`);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err) {
+      showToast(err.message || 'Login failed', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial boot: auto-login to Green Valley Admin by default
+  useEffect(() => {
+    handleQuickLogin('admin_gvr@test.com');
+  }, []);
+
+  // Socket.IO for live charger simulation events
+  useEffect(() => {
+    if (!selectedSocietyId) return;
+
+    const socket = io('/', { path: '/socket.io' });
+    socket.emit('join_society', selectedSocietyId);
+
+    socket.on('charger_status_changed', (data) => {
+      setChargers(prev => prev.map(c => c.id === data.chargerId ? { ...c, status: data.status } : c));
+    });
+
+    socket.on('session_update', () => {
+      adminApi.getSessions(selectedSocietyId, { status: 'active' }).then(res => {
+        setSessions(prev => {
+          const actives = res.sessions || [];
+          return [...actives, ...prev.filter(p => p.status !== 'active')];
+        });
+      }).catch(() => {});
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [selectedSocietyId]);
+
+  // Load active tab data
+  const fetchData = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      if (currentUser.role === 'super_admin') {
+        const sup = await adminApi.getSuperAdminDashboard().catch(() => null);
+        if (sup) setSuperAdminData(sup);
+        const sList = await adminApi.getAllSocieties().catch(() => ({ societies: [] }));
+        setSocietiesList(sList.societies || []);
+        const platSubs = await adminApi.getPlatformSubscriptions().catch(() => null);
+        if (platSubs) setPlatformSubscriptions(platSubs);
+      }
+
+      if (selectedSocietyId) {
+        const [dash, chg, resList, bkg, sess, tar, cmp, sub] = await Promise.all([
+          adminApi.getSocietyAnalytics(selectedSocietyId).catch(() => null),
+          adminApi.getChargers(selectedSocietyId).catch(() => ({ chargers: [] })),
+          adminApi.getResidents(selectedSocietyId).catch(() => ({ residents: [] })),
+          adminApi.getBookings(selectedSocietyId).catch(() => ({ bookings: [] })),
+          adminApi.getSessions(selectedSocietyId).catch(() => ({ sessions: [] })),
+          adminApi.getTariffRules(selectedSocietyId).catch(() => ({ tariffs: [] })),
+          adminApi.getComplaints(selectedSocietyId).catch(() => ({ complaints: [] })),
+          adminApi.getSubscription(selectedSocietyId).catch(() => null),
+        ]);
+
+        if (dash) setDashboardData(dash);
+        if (chg?.chargers) setChargers(chg.chargers);
+        if (resList?.residents) setResidents(resList.residents);
+        if (bkg?.bookings) setBookings(bkg.bookings);
+        if (sess?.sessions) setSessions(sess.sessions);
+        if (tar?.tariffs) setTariffs(tar.tariffs);
+        if (cmp?.complaints) setComplaints(cmp.complaints);
+        if (sub) setSubscriptionData(sub);
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+    }
+  }, [currentUser, selectedSocietyId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData, refreshTrigger]);
+
+  // Action Handlers
+  const handleChargerStatusChange = async (chargerId, newStatus) => {
+    try {
+      await adminApi.updateChargerStatus(selectedSocietyId, chargerId, newStatus);
+      showToast(`Charger updated to ${newStatus}`);
+      fetchData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleResidentApproval = async (userId, newStatus) => {
+    try {
+      await adminApi.updateResident(selectedSocietyId, userId, { status: newStatus });
+      showToast(`Resident ${newStatus}`);
+      fetchData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleAddCharger = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      await adminApi.createCharger(selectedSocietyId, {
+        charger_number: form.charger_number.value,
+        name: form.name.value,
+        power_output_kw: parseFloat(form.power_output_kw.value),
+        connector_type: form.connector_type.value,
+        charging_type: form.charging_type.value,
+        parking_slot: form.parking_slot.value,
+      });
+      showToast('Charger created successfully!');
+      setShowAddChargerModal(false);
+      fetchData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleCreateSociety = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      await adminApi.createSociety({
+        name: form.name.value,
+        code: form.code.value,
+        address: form.address.value,
+        city: form.city.value,
+        state: form.state.value,
+        default_price_per_kwh: parseFloat(form.default_price.value) || 8.0,
+      });
+      showToast('Society registered!');
+      setShowAddSocietyModal(false);
+      fetchData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleBroadcast = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      await adminApi.broadcastNotification({
+        society_id: selectedSocietyId,
+        title: form.title.value,
+        message: form.message.value,
+        type: 'announcement',
+      });
+      showToast('Announcement sent to all society members!');
+      setShowBroadcastModal(false);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleAssignAdmin = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      await adminApi.assignAdmin(selectedSocietyForAdmin.id, {
+        name: form.name.value,
+        email: form.email.value,
+        password: form.password.value,
+        flat_number: form.flat.value,
+      });
+      showToast(`Admin assigned to ${selectedSocietyForAdmin.name}!`);
+      setShowAssignAdminModal(false);
+      fetchData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  // Subscription upgrade handler
+  const handleConfirmUpgrade = async () => {
+    if (!selectedPlanForUpgrade) return;
+    try {
+      const res = await adminApi.upgradeSubscription(selectedSocietyId, {
+        plan_id: selectedPlanForUpgrade.id,
+        billing_cycle: billingCycle,
+      });
+      showToast(res.message || `Upgraded to ${selectedPlanForUpgrade.name}!`);
+      setShowUpgradeModal(false);
+      fetchData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const exportCSV = (data, filename) => {
+    if (!data || !data.length) {
+      showToast('No data to export', 'error');
+      return;
+    }
+    const headers = Object.keys(data[0]).join(',');
+    const rows = data.map(item => Object.values(item).map(val => `"${val !== null ? val : ''}"`).join(','));
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${filename}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Exported ${filename}.csv`);
+  };
+
+  const isSuperAdmin = currentUser?.role === 'super_admin';
+
+  return (
+    <div className="admin-layout">
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 9999,
+          background: toast.type === 'error' ? '#ef4444' : '#00A651',
+          color: '#ffffff',
+          padding: '12px 20px',
+          borderRadius: '8px',
+          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.4)',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: 'fadeIn 0.2s ease',
+        }}>
+          {toast.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle size={18} />}
+          {toast.message}
+        </div>
+      )}
+
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div className="brand-icon">
+            <Zap size={22} fill="white" />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span className="brand-title">EcoVoltX</span>
+              <span className="brand-badge">Admin</span>
+            </div>
+            <div className="powered-by-badge">
+              Powered by <span className="econelssol-brand"><span className="eco">Eco</span><span className="nelssol">Nelssol</span></span>
+            </div>
+          </div>
+        </div>
+
+        <nav className="sidebar-nav">
+          <div className="nav-section-title">Operations</div>
+          <button
+            className={`nav-item ${currentTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('dashboard')}
+          >
+            <LayoutDashboard size={18} /> Dashboard
+          </button>
+          <button
+            className={`nav-item ${currentTab === 'chargers' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('chargers')}
+          >
+            <Zap size={18} /> Live Chargers
+          </button>
+          <button
+            className={`nav-item ${currentTab === 'residents' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('residents')}
+          >
+            <Users size={18} /> Residents & Approvals
+          </button>
+          <button
+            className={`nav-item ${currentTab === 'bookings' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('bookings')}
+          >
+            <Calendar size={18} /> Slot Bookings
+          </button>
+          <button
+            className={`nav-item ${currentTab === 'sessions' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('sessions')}
+          >
+            <History size={18} /> Charging Sessions
+          </button>
+
+          <div className="nav-section-title">Finance & Policies</div>
+          <button
+            className={`nav-item ${currentTab === 'subscription' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('subscription')}
+          >
+            <CreditCard size={18} /> Subscriptions & Plans
+          </button>
+          <button
+            className={`nav-item ${currentTab === 'tariffs' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('tariffs')}
+          >
+            <DollarSign size={18} /> Tariffs & Pricing
+          </button>
+          <button
+            className={`nav-item ${currentTab === 'reports' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('reports')}
+          >
+            <BarChart3 size={18} /> Analytics & Reports
+          </button>
+          <button
+            className={`nav-item ${currentTab === 'announcements' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('announcements')}
+          >
+            <BellRing size={18} /> Announcements
+          </button>
+
+          {isSuperAdmin && (
+            <>
+              <div className="nav-section-title">Platform Admin</div>
+              <button
+                className={`nav-item ${currentTab === 'platform-subscriptions' ? 'active' : ''}`}
+                onClick={() => setCurrentTab('platform-subscriptions')}
+              >
+                <Shield size={18} /> Platform Subscriptions (MRR)
+              </button>
+              <button
+                className={`nav-item ${currentTab === 'societies' ? 'active' : ''}`}
+                onClick={() => setCurrentTab('societies')}
+              >
+                <Building size={18} /> Societies Directory
+              </button>
+            </>
+          )}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="user-pill">
+              <div className="avatar">
+                {currentUser?.name?.charAt(0) || 'A'}
+              </div>
+              <div style={{ overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f8fafc', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {currentUser?.name || 'Administrator'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#00A651', fontWeight: 600 }}>
+                  {isSuperAdmin ? 'Super Admin' : `${subscriptionData?.subscription?.plan_name?.split(' ')[0] || 'Pro'} Society Admin`}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => handleQuickLogin('superadmin@societycharge.com')}
+              title="Switch to Super Admin"
+              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
+            >
+              <RefreshCw size={16} />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="main-content">
+        {/* Top Header */}
+        <header className="top-header">
+          <div className="top-header-left">
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', textTransform: 'capitalize' }}>
+              {currentTab.replace('-', ' ')}
+            </h2>
+            {isSuperAdmin && (
+              <span style={{
+                background: 'rgba(0, 102, 204, 0.2)',
+                color: '#38bdf8',
+                fontSize: '0.75rem',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <Shield size={12} /> Super Admin View
+              </span>
+            )}
+            <span className="powered-by-badge" style={{ margin: 0 }}>
+              Powered by <span className="econelssol-brand"><span className="eco">Eco</span><span className="nelssol">Nelssol</span></span>
+            </span>
+          </div>
+
+          <div className="top-header-right">
+            {/* Society Selector */}
+            {societiesList.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Building size={16} color="#94a3b8" />
+                <select
+                  className="society-selector"
+                  value={selectedSocietyId || ''}
+                  onChange={(e) => {
+                    const id = parseInt(e.target.value, 10);
+                    setSelectedSocietyId(id);
+                    setRefreshTrigger(prev => prev + 1);
+                  }}
+                >
+                  {societiesList.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => {
+                setRefreshTrigger(prev => prev + 1);
+                showToast('Refreshed data');
+              }}
+            >
+              <RefreshCw size={14} /> Refresh
+            </button>
+          </div>
+        </header>
+
+        {/* Page Body */}
+        <div className="page-body">
+          {/* Demo Role Switcher Quick Bar */}
+          <div className="demo-banner">
+            <div className="demo-title">
+              <Zap size={16} />
+              <span>EcoVoltX Quick Role & Subscription Switcher:</span>
+            </div>
+            <div className="demo-actions">
+              {demoAccounts.map(acc => (
+                <button
+                  key={acc.email}
+                  className={`demo-btn ${currentUser?.email === acc.email ? 'active' : ''}`}
+                  onClick={() => handleQuickLogin(acc.email)}
+                >
+                  {acc.label}
+                </button>
+              ))}
+              <a
+                href="http://localhost:5173/app/"
+                target="_blank"
+                rel="noreferrer"
+                className="demo-btn"
+                style={{ background: 'rgba(0, 166, 81, 0.15)', color: '#00c761', borderColor: 'rgba(0, 166, 81, 0.4)' }}
+              >
+                📱 Open Resident Mobile App ↗
+              </a>
+            </div>
+          </div>
+
+          {/* TAB: SUBSCRIPTIONS & PLANS (SOCIETY ADMIN) */}
+          {currentTab === 'subscription' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc' }}>Society SaaS Subscription</h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                    Manage your EcoVoltX cloud platform license, charger capacity quotas, and monthly billing
+                  </p>
+                </div>
+                {/* Billing Cycle Switcher */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: '#0b1120',
+                  padding: '4px',
+                  borderRadius: '10px',
+                  border: '1px solid #1e293b'
+                }}>
+                  <button
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: billingCycle === 'monthly' ? '#00A651' : 'transparent',
+                      color: billingCycle === 'monthly' ? '#ffffff' : '#94a3b8',
+                      fontWeight: 600,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onClick={() => setBillingCycle('monthly')}
+                  >
+                    Monthly Billing
+                  </button>
+                  <button
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: billingCycle === 'annual' ? '#00A651' : 'transparent',
+                      color: billingCycle === 'annual' ? '#ffffff' : '#94a3b8',
+                      fontWeight: 600,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onClick={() => setBillingCycle('annual')}
+                  >
+                    Annual Billing
+                    <span style={{
+                      background: 'rgba(255, 255, 255, 0.25)',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '0.68rem',
+                      fontWeight: 700
+                    }}>SAVE 20%</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Active Subscription Banner & Resource Quotas */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(0, 166, 81, 0.12) 0%, rgba(0, 102, 204, 0.12) 100%)',
+                border: '1px solid rgba(0, 166, 81, 0.3)',
+                borderRadius: '14px',
+                padding: '24px',
+                marginBottom: '28px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                gap: '20px',
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', fontWeight: 600 }}>Current Subscription</span>
+                    <span className="badge badge-available">
+                      <span className="status-dot available" />
+                      {subscriptionData?.subscription?.status || 'Active'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc', marginBottom: '6px' }}>
+                    {subscriptionData?.subscription?.plan_name || 'Pro Society Plan'}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                    Next renewal on: <strong style={{ color: '#f8fafc' }}>{new Date(subscriptionData?.subscription?.renews_at || Date.now() + 30 * 86400000).toLocaleDateString()}</strong>
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '4px' }}>
+                    Billing Cycle: {subscriptionData?.subscription?.billing_cycle?.toUpperCase() || 'MONTHLY'} • Auto-Renew Active
+                  </div>
+                </div>
+
+                {/* Quota meters */}
+                <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '16px 20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
+                    <span style={{ color: '#94a3b8' }}>Charger Capacity Quota</span>
+                    <span style={{ fontWeight: 700, color: '#38bdf8' }}>
+                      {subscriptionData?.usage?.active_chargers || chargers.length} / {subscriptionData?.usage?.max_chargers || 10} Chargers
+                    </span>
+                  </div>
+                  <div className="meter-bar">
+                    <div
+                      className="meter-fill"
+                      style={{
+                        width: `${Math.min(100, ((subscriptionData?.usage?.active_chargers || chargers.length) / (subscriptionData?.usage?.max_chargers || 10)) * 100)}%`
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b', marginTop: '12px' }}>
+                    <span>Registered Residents: <strong style={{ color: '#f8fafc' }}>{subscriptionData?.usage?.approved_residents || residents.length}</strong></span>
+                    <span>Smart Load: <strong style={{ color: '#00A651' }}>Enabled</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Plan Comparison Matrix */}
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={18} color="#00A651" /> Available EcoVoltX Subscription Plans
+              </h4>
+
+              <div className="pricing-grid">
+                {(subscriptionData?.available_plans || [
+                  {
+                    id: 'starter',
+                    name: 'Starter Community',
+                    price_monthly: 1999,
+                    price_annual: 19190,
+                    max_chargers: 3,
+                    description: 'Perfect for small gated communities starting their EV journey.',
+                    features: ['Up to 3 EV Chargers', 'Resident Mobile App Access', 'Real-Time Charger Telemetry', 'Slot Booking System', 'Standard Electricity Tariff', 'Community Email Support'],
+                  },
+                  {
+                    id: 'pro',
+                    name: 'Pro Society (Recommended)',
+                    price_monthly: 4999,
+                    price_annual: 47990,
+                    max_chargers: 10,
+                    popular: true,
+                    description: 'Advanced automation, dynamic tariffs, and load insights for thriving complexes.',
+                    features: ['Up to 10 EV Chargers', 'All Starter Features', 'TOD Dynamic Tariffs', 'Automated Idle Penalty Fees', 'Push & In-App Announcements', 'Monthly Auto-Invoicing & Billing Logs', 'Priority Admin Phone & Chat Support'],
+                  },
+                  {
+                    id: 'enterprise',
+                    name: 'Enterprise Grid',
+                    price_monthly: 9999,
+                    price_annual: 95990,
+                    max_chargers: 50,
+                    description: 'Complete EV charging infrastructure for mega-townships and residential parks.',
+                    features: ['Up to 50 Chargers (Custom Scaling)', 'All Pro Features', 'Smart Grid Load Balancing & Peak Shaving', 'RFID & OCPP Integration', 'Custom ERP/Accounting Webhooks', 'Dedicated Account Manager & 24/7 SLA', 'Co-Branding with EcoNelssol'],
+                  },
+                ]).map((plan) => {
+                  const isCurrent = subscriptionData?.subscription?.plan_id === plan.id;
+                  const price = billingCycle === 'annual' ? plan.price_annual : plan.price_monthly;
+
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`pricing-card ${isCurrent ? 'current' : ''} ${plan.popular ? 'popular' : ''}`}
+                    >
+                      {isCurrent ? (
+                        <span className="plan-badge">CURRENT PLAN</span>
+                      ) : plan.popular ? (
+                        <span className="plan-badge popular">MOST POPULAR</span>
+                      ) : null}
+
+                      <div>
+                        <div className="plan-name">{plan.name}</div>
+                        <div className="plan-desc">{plan.description}</div>
+
+                        <div className="plan-price-box">
+                          <span style={{ fontSize: '1.1rem', color: '#94a3b8', fontWeight: 600 }}>₹</span>
+                          <span className="plan-price">{price.toLocaleString()}</span>
+                          <span className="plan-period">/ {billingCycle === 'annual' ? 'year' : 'month'}</span>
+                        </div>
+
+                        <ul className="plan-features">
+                          {plan.features.map((feat, idx) => (
+                            <li key={idx} className="plan-feature-item">
+                              <Check size={16} className="plan-feature-check" />
+                              <span>{feat}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {isCurrent ? (
+                        <button className="btn btn-outline" disabled style={{ width: '100%', opacity: 0.7, cursor: 'default' }}>
+                          ✓ Active Society Plan
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-primary"
+                          style={{
+                            width: '100%',
+                            background: plan.popular ? '#0066CC' : '#00A651',
+                            borderColor: plan.popular ? '#0066CC' : '#00A651'
+                          }}
+                          onClick={() => {
+                            setSelectedPlanForUpgrade(plan);
+                            setShowUpgradeModal(true);
+                          }}
+                        >
+                          Switch to {plan.name.split(' ')[0]}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Past Subscription Invoices */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <History size={20} color="#0066CC" /> Subscription Billing History & Receipts
+                  </div>
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(subscriptionData?.invoices || [], 'subscription_invoices')}>
+                    <Download size={14} /> Export Receipts
+                  </button>
+                </div>
+
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Invoice Number</th>
+                        <th>Plan & Description</th>
+                        <th>Amount</th>
+                        <th>Billing Cycle</th>
+                        <th>Period</th>
+                        <th>Payment Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(subscriptionData?.invoices || []).map((inv) => (
+                        <tr key={inv.id}>
+                          <td style={{ fontFamily: 'monospace', fontWeight: 600, color: '#38bdf8' }}>{inv.invoice_number}</td>
+                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{inv.plan_name}</td>
+                          <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#00A651' }}>₹{parseFloat(inv.amount).toLocaleString()}</td>
+                          <td>
+                            <span style={{ background: '#1e293b', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                              {inv.billing_cycle}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '0.82rem' }}>
+                            {new Date(inv.period_start).toLocaleDateString()} – {new Date(inv.period_end).toLocaleDateString()}
+                          </td>
+                          <td>
+                            <span className="badge badge-available">
+                              <span className="status-dot available" />
+                              {inv.status}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-outline btn-sm"
+                              onClick={() => showToast(`Downloaded invoice ${inv.invoice_number} receipt`)}
+                            >
+                              <Download size={12} /> Receipt
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {(!subscriptionData?.invoices || subscriptionData.invoices.length === 0) && (
+                        <tr>
+                          <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                            No past invoices recorded.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: SUPER ADMIN PLATFORM SUBSCRIPTIONS (MRR / ARR) */}
+          {currentTab === 'platform-subscriptions' && isSuperAdmin && (
+            <div>
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc' }}>Platform Subscription Revenue</h3>
+                <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                  Track multi-society recurring SaaS licenses, MRR, ARR, and society subscription health powered by EcoNelssol
+                </p>
+              </div>
+
+              {/* Financial KPI Grid */}
+              <div className="metrics-grid">
+                <div className="metric-card">
+                  <div className="metric-card-top">
+                    <span className="metric-title">Monthly Recurring Revenue (MRR)</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(0, 166, 81, 0.15)', color: '#00A651' }}>
+                      <DollarSign size={18} />
+                    </div>
+                  </div>
+                  <div className="metric-value" style={{ color: '#00A651' }}>
+                    ₹{(platformSubscriptions?.metrics?.total_mrr || 6998).toLocaleString()}
+                  </div>
+                  <div className="metric-subtitle">Across active society subscriptions</div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-card-top">
+                    <span className="metric-title">Annual Recurring Revenue (ARR)</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(0, 102, 204, 0.15)', color: '#0066CC' }}>
+                      <BarChart3 size={18} />
+                    </div>
+                  </div>
+                  <div className="metric-value" style={{ color: '#38bdf8' }}>
+                    ₹{(platformSubscriptions?.metrics?.total_arr || 83976).toLocaleString()}
+                  </div>
+                  <div className="metric-subtitle">Projected annual platform revenue</div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-card-top">
+                    <span className="metric-title">Active Subscribed Societies</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' }}>
+                      <Building size={18} />
+                    </div>
+                  </div>
+                  <div className="metric-value">
+                    {platformSubscriptions?.metrics?.active_subscriptions || societiesList.length}
+                  </div>
+                  <div className="metric-subtitle">100% renewal retention rate</div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-card-top">
+                    <span className="metric-title">Platform Operator</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(255, 255, 255, 0.08)' }}>
+                      <Zap size={18} color="#00A651" />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '8px' }}>
+                    <span className="econelssol-brand"><span className="eco">Eco</span><span className="nelssol">Nelssol</span></span>
+                  </div>
+                  <div className="metric-subtitle">EcoVoltX Cloud Infrastructure</div>
+                </div>
+              </div>
+
+              {/* Societies Subscription Roster */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <CreditCard size={20} color="#00A651" /> Society Subscription Directory
+                  </div>
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(platformSubscriptions?.societies || [], 'platform_subscriptions')}>
+                    <Download size={14} /> Export Subscriptions
+                  </button>
+                </div>
+
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Society</th>
+                        <th>Code</th>
+                        <th>City</th>
+                        <th>Current Tier</th>
+                        <th>Monthly Fee</th>
+                        <th>Chargers</th>
+                        <th>Renewal Date</th>
+                        <th>Subscription Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(platformSubscriptions?.societies || societiesList).map((soc) => (
+                        <tr key={soc.id}>
+                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{soc.name}</td>
+                          <td>
+                            <span style={{ background: '#1e293b', padding: '3px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700, color: '#00A651' }}>
+                              {soc.code}
+                            </span>
+                          </td>
+                          <td>{soc.city || 'Bengaluru'}</td>
+                          <td>
+                            <span className="badge" style={{
+                              background: soc.plan_id === 'enterprise' ? 'rgba(139, 92, 246, 0.2)' : soc.plan_id === 'starter' ? 'rgba(100, 116, 139, 0.2)' : 'rgba(0, 166, 81, 0.15)',
+                              color: soc.plan_id === 'enterprise' ? '#a78bfa' : soc.plan_id === 'starter' ? '#94a3b8' : '#34d399',
+                            }}>
+                              {soc.plan_name || (soc.id === 1 ? 'Pro Society' : 'Starter Community')}
+                            </span>
+                          </td>
+                          <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#f8fafc' }}>
+                            ₹{soc.price_monthly ? soc.price_monthly.toLocaleString() : (soc.id === 1 ? '4,999' : '1,999')}
+                          </td>
+                          <td style={{ color: '#38bdf8', fontWeight: 600 }}>
+                            {soc.chargers_count ?? 3} / {soc.charger_limit ?? (soc.id === 1 ? 10 : 3)}
+                          </td>
+                          <td style={{ fontSize: '0.82rem' }}>
+                            {new Date(soc.renews_at || Date.now() + 25 * 86400000).toLocaleDateString()}
+                          </td>
+                          <td>
+                            <span className="badge badge-available">
+                              <span className="status-dot available" />
+                              {soc.status || 'Active'}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-outline btn-sm"
+                              onClick={() => {
+                                setSelectedSocietyId(soc.id);
+                                setCurrentTab('subscription');
+                                showToast(`Viewing subscription portal for ${soc.name}`);
+                              }}
+                            >
+                              Manage Plan
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 1: DASHBOARD */}
+          {currentTab === 'dashboard' && (
+            <div>
+              {/* Metrics Grid */}
+              <div className="metrics-grid">
+                <div className="metric-card">
+                  <div className="metric-card-top">
+                    <span className="metric-title">Available Chargers</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(0, 166, 81, 0.15)', color: '#00A651' }}>
+                      <Zap size={18} />
+                    </div>
+                  </div>
+                  <div className="metric-value">
+                    {dashboardData?.overview?.available_chargers ?? chargers.filter(c => c.status === 'available').length}
+                    <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: 500 }}>
+                      /{chargers.length || 0}
+                    </span>
+                  </div>
+                  <div className="metric-subtitle">
+                    {chargers.filter(c => c.status === 'charging').length} actively charging
+                  </div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-card-top">
+                    <span className="metric-title">Today's Consumption</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(0, 102, 204, 0.15)', color: '#0066CC' }}>
+                      <BatteryCharging size={18} />
+                    </div>
+                  </div>
+                  <div className="metric-value">
+                    {dashboardData?.today?.energy_kwh ?? 0} <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>kWh</span>
+                  </div>
+                  <div className="metric-subtitle">
+                    {dashboardData?.today?.sessions ?? 0} completed charges today
+                  </div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-card-top">
+                    <span className="metric-title">Today's Revenue</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
+                      <DollarSign size={18} />
+                    </div>
+                  </div>
+                  <div className="metric-value">
+                    ₹{dashboardData?.today?.revenue ?? 0}
+                  </div>
+                  <div className="metric-subtitle">
+                    Monthly total: ₹{dashboardData?.monthly?.revenue ?? 0}
+                  </div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-card-top">
+                    <span className="metric-title">Society SaaS Plan</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' }}>
+                      <CreditCard size={18} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc', marginTop: '6px' }}>
+                    {subscriptionData?.subscription?.plan_name?.split(' ')[0] || 'Pro'} Tier
+                  </div>
+                  <div className="metric-subtitle">
+                    Limit: {subscriptionData?.usage?.max_chargers || 10} chargers • <span style={{ color: '#00A651', fontWeight: 600 }}>Active</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pending Approvals Alert Banner */}
+              {residents.filter(r => r.status === 'pending').length > 0 && (
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  borderRadius: '10px',
+                  padding: '16px 20px',
+                  marginBottom: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <UserCheck size={24} color="#f59e0b" />
+                    <div>
+                      <div style={{ fontWeight: 600, color: '#f59e0b', fontSize: '0.95rem' }}>
+                        {residents.filter(r => r.status === 'pending').length} Resident Approval Request(s) Pending
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                        New residents have joined your society code and are waiting to access chargers.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setCurrentTab('residents')}
+                  >
+                    Review Now
+                  </button>
+                </div>
+              )}
+
+              {/* Live Chargers Quick Grid */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <Zap size={20} color="#00A651" /> Live Charger Station Telemetry
+                  </div>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowAddChargerModal(true)}>
+                    <Plus size={14} /> Add Charger
+                  </button>
+                </div>
+
+                <div className="chargers-grid">
+                  {chargers.map(charger => (
+                    <div key={charger.id} className="charger-admin-card">
+                      <div className="charger-header">
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '1rem', color: '#f8fafc' }}>
+                            {charger.charger_number} — {charger.name}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                            Slot: {charger.parking_slot || 'Ground Bay'}
+                          </div>
+                        </div>
+                        <span className={`badge badge-${charger.status}`}>
+                          <span className={`status-dot ${charger.status}`} />
+                          {charger.status}
+                        </span>
+                      </div>
+
+                      <div className="charger-specs">
+                        <div className="spec-item">
+                          <span className="spec-label">Capacity</span>
+                          <span className="spec-val">{charger.power_output_kw} kW</span>
+                        </div>
+                        <div className="spec-item">
+                          <span className="spec-label">Connector</span>
+                          <span className="spec-val">{charger.connector_type}</span>
+                        </div>
+                        <div className="spec-item">
+                          <span className="spec-label">Current Rate</span>
+                          <span className="spec-val">₹{charger.price_per_kwh}/kWh</span>
+                        </div>
+                        <div className="spec-item">
+                          <span className="spec-label">Type</span>
+                          <span className="spec-val">{charger.charging_type?.toUpperCase()}</span>
+                        </div>
+                      </div>
+
+                      <div className="charger-actions">
+                        {charger.status === 'available' && (
+                          <button
+                            className="btn btn-outline btn-sm"
+                            style={{ flex: 1 }}
+                            onClick={() => handleChargerStatusChange(charger.id, 'offline')}
+                          >
+                            Set Offline
+                          </button>
+                        )}
+                        {charger.status === 'offline' && (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ flex: 1 }}
+                            onClick={() => handleChargerStatusChange(charger.id, 'available')}
+                          >
+                            Set Online
+                          </button>
+                        )}
+                        {charger.status === 'faulted' && (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ flex: 1 }}
+                            onClick={() => handleChargerStatusChange(charger.id, 'available')}
+                          >
+                            Reset Fault
+                          </button>
+                        )}
+                        <button
+                          className="btn btn-outline btn-sm"
+                          style={{ flex: 1 }}
+                          onClick={() => {
+                            const newStatus = charger.status === 'maintenance' ? 'available' : 'maintenance';
+                            handleChargerStatusChange(charger.id, newStatus);
+                          }}
+                        >
+                          {charger.status === 'maintenance' ? 'End Maint.' : 'Maint.'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Active & Recent Charging Sessions */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <History size={20} color="#0066CC" /> Recent Society Charging Logs
+                  </div>
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(sessions, 'charging_sessions')}>
+                    <Download size={14} /> Export CSV
+                  </button>
+                </div>
+
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Session ID</th>
+                        <th>User</th>
+                        <th>Charger</th>
+                        <th>Status</th>
+                        <th>Energy (kWh)</th>
+                        <th>Cost</th>
+                        <th>Start Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sessions.slice(0, 8).map(sess => (
+                        <tr key={sess.id}>
+                          <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>#{sess.id}</td>
+                          <td style={{ color: '#f8fafc', fontWeight: 500 }}>{sess.user_name || `User #${sess.user_id}`}</td>
+                          <td>{sess.charger_number || `Charger #${sess.charger_id}`}</td>
+                          <td>
+                            <span className={`badge badge-${sess.status}`}>
+                              <span className={`status-dot ${sess.status}`} />
+                              {sess.status}
+                            </span>
+                          </td>
+                          <td style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{sess.energy_kwh} kWh</td>
+                          <td style={{ fontFamily: 'monospace', color: '#00A651', fontWeight: 600 }}>₹{sess.cost}</td>
+                          <td style={{ fontSize: '0.8rem' }}>{new Date(sess.start_time).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                      {sessions.length === 0 && (
+                        <tr>
+                          <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                            No sessions recorded yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: LIVE CHARGERS */}
+          {currentTab === 'chargers' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc' }}>Society Charging Stations</h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Configure power limits, pricing, maintenance mode, and view real-time state</p>
+                </div>
+                <button className="btn btn-primary" onClick={() => setShowAddChargerModal(true)}>
+                  <Plus size={16} /> Add New Charger
+                </button>
+              </div>
+
+              <div className="chargers-grid">
+                {chargers.map(charger => (
+                  <div key={charger.id} className="charger-admin-card">
+                    <div className="charger-header">
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#f8fafc' }}>
+                          {charger.charger_number}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{charger.name}</div>
+                      </div>
+                      <span className={`badge badge-${charger.status}`}>
+                        <span className={`status-dot ${charger.status}`} />
+                        {charger.status}
+                      </span>
+                    </div>
+
+                    <div className="charger-specs">
+                      <div className="spec-item">
+                        <span className="spec-label">Capacity</span>
+                        <span className="spec-val">{charger.power_output_kw} kW</span>
+                      </div>
+                      <div className="spec-item">
+                        <span className="spec-label">Rate</span>
+                        <span className="spec-val">₹{charger.price_per_kwh}/kWh</span>
+                      </div>
+                      <div className="spec-item">
+                        <span className="spec-label">Connector</span>
+                        <span className="spec-val">{charger.connector_type}</span>
+                      </div>
+                      <div className="spec-item">
+                        <span className="spec-label">Slot</span>
+                        <span className="spec-val">{charger.parking_slot || 'Ground'}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          style={{ flex: 1 }}
+                          onClick={() => {
+                            const newRate = prompt('Enter new price per kWh (₹):', charger.price_per_kwh);
+                            if (newRate && !isNaN(newRate)) {
+                              adminApi.updateCharger(selectedSocietyId, charger.id, { price_per_kwh: parseFloat(newRate) })
+                                .then(() => { showToast('Price updated'); fetchData(); })
+                                .catch(err => showToast(err.message, 'error'));
+                            }
+                          }}
+                        >
+                          <DollarSign size={14} /> Edit Price
+                        </button>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          style={{ flex: 1 }}
+                          onClick={() => {
+                            handleChargerStatusChange(charger.id, charger.status === 'maintenance' ? 'available' : 'maintenance');
+                          }}
+                        >
+                          <Settings size={14} /> {charger.status === 'maintenance' ? 'Online' : 'Maint.'}
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {charger.status !== 'available' && (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ flex: 1 }}
+                            onClick={() => handleChargerStatusChange(charger.id, 'available')}
+                          >
+                            Force Available
+                          </button>
+                        )}
+                        <button
+                          className="btn btn-danger btn-sm"
+                          style={{ flex: 1 }}
+                          onClick={() => handleChargerStatusChange(charger.id, 'faulted')}
+                        >
+                          Simulate Fault
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: RESIDENTS & APPROVALS */}
+          {currentTab === 'residents' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc' }}>Resident Directory & Access Control</h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Approve new join requests, manage flat assignments, and monitor EV owners</p>
+                </div>
+                <button className="btn btn-outline" onClick={() => exportCSV(residents, 'society_residents')}>
+                  <Download size={16} /> Export Residents CSV
+                </button>
+              </div>
+
+              {/* Pending Approvals Section */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <UserCheck size={20} color="#f59e0b" /> Pending Society Join Requests
+                  </div>
+                  <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' }}>
+                    {residents.filter(r => r.status === 'pending').length} Pending
+                  </span>
+                </div>
+
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Resident</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Flat Number</th>
+                        <th>Requested Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {residents.filter(r => r.status === 'pending').map(resident => (
+                        <tr key={resident.user_id}>
+                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{resident.name}</td>
+                          <td>{resident.email}</td>
+                          <td>{resident.phone || 'N/A'}</td>
+                          <td>
+                            <span style={{ background: '#1e293b', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                              {resident.flat_number || 'Not set'}
+                            </span>
+                          </td>
+                          <td>{new Date(resident.created_at).toLocaleDateString()}</td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => handleResidentApproval(resident.user_id, 'approved')}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => handleResidentApproval(resident.user_id, 'rejected')}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {residents.filter(r => r.status === 'pending').length === 0 && (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                            No pending join requests! All residents are approved.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Approved Residents */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <Users size={20} color="#00A651" /> Approved Residents ({residents.filter(r => r.status === 'approved').length})
+                  </div>
+                </div>
+
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Flat Number</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Joined At</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {residents.filter(r => r.status === 'approved').map(res => (
+                        <tr key={res.user_id}>
+                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{res.name}</td>
+                          <td style={{ fontWeight: 600, color: '#38bdf8' }}>{res.flat_number || 'A-101'}</td>
+                          <td>{res.email}</td>
+                          <td>
+                            <span className="badge" style={{
+                              background: res.role === 'admin' ? 'rgba(0, 102, 204, 0.2)' : 'rgba(0, 166, 81, 0.15)',
+                              color: res.role === 'admin' ? '#38bdf8' : '#34d399',
+                            }}>
+                              {res.role}
+                            </span>
+                          </td>
+                          <td>{new Date(res.joined_at || res.created_at).toLocaleDateString()}</td>
+                          <td>
+                            <button
+                              className="btn btn-outline btn-sm"
+                              onClick={() => {
+                                const newFlat = prompt('Update Flat Number for ' + res.name, res.flat_number || '');
+                                if (newFlat !== null) {
+                                  adminApi.updateResident(selectedSocietyId, res.user_id, { flat_number: newFlat })
+                                    .then(() => { showToast('Flat updated'); fetchData(); })
+                                    .catch(err => showToast(err.message, 'error'));
+                                }
+                              }}
+                            >
+                              Edit Flat
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: BOOKINGS */}
+          {currentTab === 'bookings' && (
+            <div>
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <Calendar size={20} color="#0066CC" /> Resident Charger Reservations
+                  </div>
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(bookings, 'bookings_schedule')}>
+                    <Download size={14} /> Export Bookings CSV
+                  </button>
+                </div>
+
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Resident</th>
+                        <th>Charger</th>
+                        <th>Date & Time Slot</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bookings.map(b => (
+                        <tr key={b.id}>
+                          <td style={{ fontFamily: 'monospace' }}>#{b.id}</td>
+                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{b.user_name || `User #${b.user_id}`}</td>
+                          <td>{b.charger_number}</td>
+                          <td style={{ color: '#38bdf8' }}>
+                            {new Date(b.start_time).toLocaleString()} – {new Date(b.end_time).toLocaleTimeString()}
+                          </td>
+                          <td>
+                            <span className={`badge badge-${b.status}`}>
+                              <span className={`status-dot ${b.status}`} />
+                              {b.status}
+                            </span>
+                          </td>
+                          <td>{new Date(b.created_at).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                      {bookings.length === 0 && (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                            No bookings scheduled.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: CHARGING SESSIONS */}
+          {currentTab === 'sessions' && (
+            <div>
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <History size={20} color="#0066CC" /> Complete Charging Sessions Log
+                  </div>
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(sessions, 'all_charging_sessions')}>
+                    <Download size={14} /> Export CSV
+                  </button>
+                </div>
+
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Resident</th>
+                        <th>Charger</th>
+                        <th>Status</th>
+                        <th>Energy (kWh)</th>
+                        <th>Cost (₹)</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sessions.map(s => (
+                        <tr key={s.id}>
+                          <td style={{ fontFamily: 'monospace' }}>#{s.id}</td>
+                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{s.user_name || `User #${s.user_id}`}</td>
+                          <td>{s.charger_number || `Charger #${s.charger_id}`}</td>
+                          <td>
+                            <span className={`badge badge-${s.status}`}>
+                              <span className={`status-dot ${s.status}`} />
+                              {s.status}
+                            </span>
+                          </td>
+                          <td style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{s.energy_kwh} kWh</td>
+                          <td style={{ fontFamily: 'monospace', color: '#00A651', fontWeight: 600 }}>₹{s.cost}</td>
+                          <td>{new Date(s.start_time).toLocaleString()}</td>
+                          <td>{s.end_time ? new Date(s.end_time).toLocaleString() : 'In Progress'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: TARIFFS & BILLING */}
+          {currentTab === 'tariffs' && (
+            <div>
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <DollarSign size={20} color="#00A651" /> Electricity Tariffs & Dynamic Pricing
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+                  <div style={{ background: '#0b1120', padding: '20px', borderRadius: '10px', border: '1px solid #1e293b' }}>
+                    <h4 style={{ color: '#00A651', marginBottom: '8px', fontSize: '1rem' }}>Base Tariff Rate</h4>
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: '14px' }}>Flat energy rate charged to society residents per kWh consumed</p>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 700, fontFamily: 'monospace', color: '#f8fafc' }}>
+                      ₹8.00 <span style={{ fontSize: '0.9rem', color: '#64748b' }}>/ kWh</span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#0b1120', padding: '20px', borderRadius: '10px', border: '1px solid #1e293b' }}>
+                    <h4 style={{ color: '#f59e0b', marginBottom: '8px', fontSize: '1rem' }}>Idle Penalty Policy</h4>
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: '14px' }}>Charged when an EV remains plugged in past full charge</p>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'monospace', color: '#f8fafc' }}>
+                      ₹50.00 <span style={{ fontSize: '0.85rem', color: '#64748b' }}>/ hr (after 30m grace)</span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#0b1120', padding: '20px', borderRadius: '10px', border: '1px solid #1e293b' }}>
+                    <h4 style={{ color: '#38bdf8', marginBottom: '8px', fontSize: '1rem' }}>Peak Hour Multiplier (TOD)</h4>
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: '14px' }}>TOD rate applied during high demand hours (6 PM – 10 PM)</p>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'monospace', color: '#f8fafc' }}>
+                      1.25x <span style={{ fontSize: '0.85rem', color: '#64748b' }}>(₹10.00 / kWh)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    const newRate = prompt('Enter new base tariff rate (₹/kWh):', '8.50');
+                    if (newRate) {
+                      showToast(`Tariff updated to ₹${newRate}/kWh`);
+                    }
+                  }}
+                >
+                  Update Society Electricity Tariff
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: ANALYTICS & REPORTS */}
+          {currentTab === 'reports' && (
+            <div>
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <BarChart3 size={20} color="#38bdf8" /> Monthly Consumption Summary
+                  </div>
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(dashboardData?.resident_usage || [], 'monthly_report')}>
+                    <Download size={14} /> Download Monthly Report
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                  <div style={{ padding: '16px', background: '#0b1120', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Total kWh Consumed</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace' }}>
+                      {dashboardData?.monthly?.energy_kwh ?? 142.5} kWh
+                    </div>
+                  </div>
+                  <div style={{ padding: '16px', background: '#0b1120', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Total Revenue</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#00A651', fontFamily: 'monospace' }}>
+                      ₹{dashboardData?.monthly?.revenue ?? 1140}
+                    </div>
+                  </div>
+                  <div style={{ padding: '16px', background: '#0b1120', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Average Session Energy</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f59e0b', fontFamily: 'monospace' }}>
+                      18.4 kWh
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card-title" style={{ marginBottom: '14px', fontSize: '0.95rem' }}>
+                  Resident-Wise Energy Consumption (Current Month)
+                </div>
+
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Resident</th>
+                        <th>Flat</th>
+                        <th>Sessions</th>
+                        <th>Energy (kWh)</th>
+                        <th>Total Billed (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(dashboardData?.resident_usage || []).map((ru, idx) => (
+                        <tr key={idx}>
+                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{ru.name}</td>
+                          <td style={{ color: '#38bdf8' }}>{ru.flat_number || 'A-101'}</td>
+                          <td>{ru.session_count}</td>
+                          <td style={{ fontFamily: 'monospace' }}>{ru.total_energy} kWh</td>
+                          <td style={{ fontFamily: 'monospace', color: '#00A651', fontWeight: 600 }}>₹{ru.total_cost}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Complaints / Charger issues */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <AlertTriangle size={20} color="#f43f5e" /> Resident Reported Issues & Complaints
+                  </div>
+                </div>
+
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Resident</th>
+                        <th>Charger</th>
+                        <th>Subject</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {complaints.map(c => (
+                        <tr key={c.id}>
+                          <td style={{ fontFamily: 'monospace' }}>#{c.id}</td>
+                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{c.user_name}</td>
+                          <td>{c.charger_number || 'General'}</td>
+                          <td style={{ color: '#f8fafc' }}>{c.subject}</td>
+                          <td style={{ fontSize: '0.82rem', maxWidth: '280px' }}>{c.description}</td>
+                          <td>
+                            <span className="badge" style={{
+                              background: c.status === 'resolved' ? 'rgba(0, 166, 81, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                              color: c.status === 'resolved' ? '#00A651' : '#f43f5e',
+                            }}>
+                              {c.status}
+                            </span>
+                          </td>
+                          <td>
+                            {c.status !== 'resolved' && (
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => {
+                                  const response = prompt('Enter response to resident:', 'Issue has been inspected and resolved.');
+                                  if (response) {
+                                    adminApi.updateComplaint(selectedSocietyId, c.id, { status: 'resolved', admin_response: response })
+                                      .then(() => { showToast('Complaint resolved!'); fetchData(); })
+                                      .catch(err => showToast(err.message, 'error'));
+                                  }
+                                }}
+                              >
+                                Resolve
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {complaints.length === 0 && (
+                        <tr>
+                          <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                            No unresolved complaints reported.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: ANNOUNCEMENTS */}
+          {currentTab === 'announcements' && (
+            <div>
+              <div className="card" style={{ maxWidth: '640px' }}>
+                <div className="card-header">
+                  <div className="card-title">
+                    <BellRing size={20} color="#00A651" /> Broadcast Society EV Notice
+                  </div>
+                </div>
+
+                <form onSubmit={handleBroadcast}>
+                  <div className="form-group">
+                    <label className="form-label">Subject / Title</label>
+                    <input
+                      name="title"
+                      className="form-input"
+                      placeholder="e.g. Charger #2 Scheduled Maintenance"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Message to Residents</label>
+                    <textarea
+                      name="message"
+                      rows="4"
+                      className="form-textarea"
+                      placeholder="e.g. Charger #2 will be temporarily offline today from 2:00 PM to 4:00 PM for routine firmware updates. Please use Charger #1 or #3 during this period."
+                      required
+                    />
+                  </div>
+
+                  <button type="submit" className="btn btn-primary">
+                    <Send size={16} /> Broadcast to All Residents
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 9: SUPER ADMIN SOCIETIES DIRECTORY */}
+          {currentTab === 'societies' && isSuperAdmin && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc' }}>Platform Societies Management</h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>View all residential societies connected to the EcoVoltX cloud</p>
+                </div>
+                <button className="btn btn-primary" onClick={() => setShowAddSocietyModal(true)}>
+                  <Plus size={16} /> Register New Society
+                </button>
+              </div>
+
+              <div className="card">
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Society Name</th>
+                        <th>Code</th>
+                        <th>City / State</th>
+                        <th>Chargers</th>
+                        <th>Residents</th>
+                        <th>Subscription</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {societiesList.map(soc => (
+                        <tr key={soc.id}>
+                          <td style={{ fontFamily: 'monospace' }}>#{soc.id}</td>
+                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{soc.name}</td>
+                          <td>
+                            <span style={{ background: '#1e293b', padding: '3px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700, color: '#00A651' }}>
+                              {soc.code}
+                            </span>
+                          </td>
+                          <td>{soc.city ? `${soc.city}, ${soc.state}` : 'Bengaluru, KA'}</td>
+                          <td style={{ fontWeight: 600, color: '#38bdf8' }}>{soc.stats?.chargers ?? 3}</td>
+                          <td style={{ fontWeight: 600, color: '#a78bfa' }}>{soc.stats?.members ?? 5}</td>
+                          <td>
+                            <span className="badge" style={{ background: 'rgba(0, 166, 81, 0.15)', color: '#00A651' }}>
+                              {soc.id === 1 ? 'Pro (₹4,999)' : 'Starter (₹1,999)'}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="badge badge-available">
+                              <span className="status-dot available" />
+                              {soc.status || 'Active'}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => {
+                                  setSelectedSocietyId(soc.id);
+                                  setCurrentTab('dashboard');
+                                  showToast(`Switched view to ${soc.name}`);
+                                }}
+                              >
+                                View Portal
+                              </button>
+                              <button
+                                className="btn btn-outline btn-sm"
+                                onClick={() => {
+                                  setSelectedSocietyForAdmin(soc);
+                                  setShowAssignAdminModal(true);
+                                }}
+                              >
+                                Assign Admin
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* MODAL: UPGRADE SUBSCRIPTION */}
+      {showUpgradeModal && selectedPlanForUpgrade && (
+        <div className="modal-overlay" onClick={() => setShowUpgradeModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CreditCard size={20} color="#00A651" /> Switch to {selectedPlanForUpgrade.name}
+              </h3>
+              <button className="modal-close" onClick={() => setShowUpgradeModal(false)}>✕</button>
+            </div>
+
+            <div style={{ background: '#0b1120', padding: '16px 20px', borderRadius: '10px', border: '1px solid #1e293b', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Selected Billing Cycle:</span>
+                <span style={{ fontWeight: 700, color: '#00A651', textTransform: 'uppercase', fontSize: '0.85rem' }}>{billingCycle}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#f8fafc', fontWeight: 600 }}>Amount Due:</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'monospace', color: '#f8fafc' }}>
+                  ₹{(billingCycle === 'annual' ? selectedPlanForUpgrade.price_annual : selectedPlanForUpgrade.price_monthly).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginBottom: '20px', lineHeight: 1.5 }}>
+              By confirming, your society will immediately upgrade to the <strong>{selectedPlanForUpgrade.name}</strong> with capacity up to <strong>{selectedPlanForUpgrade.max_chargers} EV chargers</strong> and automated invoicing powered by EcoNelssol.
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                className="btn btn-outline"
+                style={{ flex: 1 }}
+                onClick={() => setShowUpgradeModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 2, background: '#00A651', borderColor: '#00A651' }}
+                onClick={handleConfirmUpgrade}
+              >
+                Confirm & Activate Subscription
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD CHARGER */}
+      {showAddChargerModal && (
+        <div className="modal-overlay" onClick={() => setShowAddChargerModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc' }}>Add EV Charger Station</h3>
+              <button className="modal-close" onClick={() => setShowAddChargerModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleAddCharger}>
+              <div className="form-group">
+                <label className="form-label">Charger Identifier (e.g. CHG-04)</label>
+                <input name="charger_number" className="form-input" placeholder="CHG-04" required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Friendly Name</label>
+                <input name="name" className="form-input" placeholder="Basement Bay 4 Fast Charger" required />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">Power Output (kW)</label>
+                  <input name="power_output_kw" type="number" step="0.1" defaultValue="7.4" className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Connector Type</label>
+                  <select name="connector_type" className="form-select">
+                    <option value="Type 2">Type 2 (AC)</option>
+                    <option value="CCS2">CCS2 (DC Fast)</option>
+                    <option value="GB/T">GB/T</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">Charging Type</label>
+                  <select name="charging_type" className="form-select">
+                    <option value="ac">AC Level 2</option>
+                    <option value="dc">DC Fast</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Parking Slot</label>
+                  <input name="parking_slot" className="form-input" placeholder="Slot B2-40" />
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
+                Add Charger Station
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: REGISTER NEW SOCIETY */}
+      {showAddSocietyModal && (
+        <div className="modal-overlay" onClick={() => setShowAddSocietyModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc' }}>Register New Society</h3>
+              <button className="modal-close" onClick={() => setShowAddSocietyModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleCreateSociety}>
+              <div className="form-group">
+                <label className="form-label">Society Name</label>
+                <input name="name" className="form-input" placeholder="e.g. Prestige Lakeview" required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Society Join Code (e.g. PLV01)</label>
+                <input name="code" className="form-input" placeholder="PLV01" required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Address</label>
+                <input name="address" className="form-input" placeholder="Outer Ring Road, Bellandur" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">City</label>
+                  <input name="city" className="form-input" defaultValue="Bengaluru" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">State</label>
+                  <input name="state" className="form-input" defaultValue="Karnataka" />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Default Electricity Rate (₹/kWh)</label>
+                <input name="default_price" type="number" step="0.5" defaultValue="8.0" className="form-input" />
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
+                Register Society
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ASSIGN SOCIETY ADMIN */}
+      {showAssignAdminModal && selectedSocietyForAdmin && (
+        <div className="modal-overlay" onClick={() => setShowAssignAdminModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc' }}>
+                Assign Admin for {selectedSocietyForAdmin.name}
+              </h3>
+              <button className="modal-close" onClick={() => setShowAssignAdminModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleAssignAdmin}>
+              <div className="form-group">
+                <label className="form-label">Admin Full Name</label>
+                <input name="name" className="form-input" placeholder="e.g. Amit Patel" required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Admin Email</label>
+                <input name="email" type="email" className="form-input" placeholder="admin@society.com" required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Temporary Password</label>
+                <input name="password" type="password" defaultValue="Password@123" className="form-input" required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Admin Flat Number</label>
+                <input name="flat" className="form-input" placeholder="e.g. A-402" defaultValue="Admin Office" />
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
+                Assign & Grant Admin Privileges
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
