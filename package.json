@@ -7,11 +7,12 @@
     "dev": "concurrently -n server,admin,resident -c cyan,magenta,green \"npm run server\" \"npm run admin\" \"npm run resident\"",
     "postinstall": "npm --prefix server install && npm --prefix admin-dashboard install && npm --prefix resident-app install",
     "build": "npm --prefix admin-dashboard run build && npm --prefix resident-app run build",
-    "server": "cd server && npm run dev",
-    "admin": "cd admin-dashboard && npm run dev",
-    "resident": "cd resident-app && npm run dev",
-    "setup": "cd server && npm install && npm run db:setup",
-    "start": "cd server && npm start"
+    "server": "npm --prefix server run dev",
+    "admin": "npm --prefix admin-dashboard run dev",
+    "resident": "npm --prefix resident-app run dev",
+    "setup": "npm --prefix server run db:setup",
+    "start": "npm --prefix server start",
+    "chargers:simulate": "npm --prefix server run chargers:simulate"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"

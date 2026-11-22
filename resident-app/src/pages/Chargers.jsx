@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth } from '../AuthContext';
 import api from '../services/api';
 import { Zap, MapPin, ArrowLeft } from 'lucide-react';
 

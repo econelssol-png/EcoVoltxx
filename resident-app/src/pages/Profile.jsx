@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../App';
+import { useAuth } from '../AuthContext';
 import api from '../services/api';
 import { User, Mail, Phone, Home, Car, LogOut, Building2 } from 'lucide-react';
 

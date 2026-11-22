@@ -9,6 +9,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 const { createServer } = require('http');
 const { Server: SocketIO } = require('socket.io');
 const path = require('path');
@@ -17,9 +18,11 @@ const fs = require('fs');
 const config = require('./config');
 const db = require('./db/knex');
 const chargerSimulator = require('./services/chargerSimulator');
+const ocppService = require('./services/ocppService');
 
 // ── Create Express App ──────────────────────────────────
 const app = express();
+app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
 // ── Socket.IO ───────────────────────────────────────────
@@ -30,20 +33,64 @@ const io = new SocketIO(httpServer, {
   },
 });
 
+// Socket.IO authentication: every connection must present a valid access token
+// (client: io(url, { auth: { token } }) or an "Authorization: Bearer" header)
+io.use((socket, next) => {
+  const headerToken = (socket.handshake.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const token = socket.handshake.auth?.token || headerToken;
+  if (!token) return next(new Error('Authentication required'));
+
+  try {
+    socket.data.user = jwt.verify(token, config.jwtSecret);
+    next();
+  } catch (err) {
+    next(new Error(err.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token'));
+  }
+});
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log(`[Socket.IO] Client connected: ${socket.id}`);
+  const user = socket.data.user;
+  console.log(`[Socket.IO] Client connected: ${socket.id} (user ${user.id})`);
 
-  // Join society room
-  socket.on('join_society', (societyId) => {
-    socket.join(`society_${societyId}`);
-    console.log(`[Socket.IO] ${socket.id} joined society_${societyId}`);
+  // Every user receives their own events
+  socket.join(`user_${user.id}`);
+
+  // Society rooms carry other residents' session data, so only that
+  // society's admins (and super admins) may join them.
+  socket.on('join_society', async (societyId, ack) => {
+    const reply = typeof ack === 'function' ? ack : () => {};
+    const id = parseInt(societyId, 10);
+    if (!id) return reply({ ok: false, error: 'Valid society ID required' });
+
+    try {
+      if (user.role !== 'super_admin') {
+        const member = await db('society_members')
+          .where({ user_id: user.id, society_id: id, role: 'admin', status: 'approved' })
+          .first();
+        if (!member) {
+          console.warn(`[Socket.IO] ${socket.id} (user ${user.id}) refused society_${id}`);
+          return reply({ ok: false, error: 'Society admin access required' });
+        }
+      }
+
+      socket.join(`society_${id}`);
+      console.log(`[Socket.IO] ${socket.id} joined society_${id}`);
+      reply({ ok: true });
+    } catch (err) {
+      console.error('[Socket.IO] join_society error:', err.message);
+      reply({ ok: false, error: 'Failed to join society' });
+    }
   });
 
-  // Join user-specific room
-  socket.on('join_user', (userId) => {
-    socket.join(`user_${userId}`);
-    console.log(`[Socket.IO] ${socket.id} joined user_${userId}`);
+  // Kept for older clients: users may only (re)join their own room
+  socket.on('join_user', (userId, ack) => {
+    const reply = typeof ack === 'function' ? ack : () => {};
+    if (parseInt(userId, 10) !== user.id) {
+      return reply({ ok: false, error: 'You can only join your own user room' });
+    }
+    socket.join(`user_${user.id}`);
+    reply({ ok: true });
   });
 
   socket.on('disconnect', () => {
@@ -53,11 +100,21 @@ io.on('connection', (socket) => {
 
 // Initialize charger simulator with Socket.IO
 chargerSimulator.init(io);
+// Initialize OCPP 1.6-J Central System WebSocket Server
+ocppService.init(httpServer, io);
 
 // ── Middleware ───────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: config.corsOrigin, credentials: true }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  // Keep the exact request bytes for webhook signature verification
+  verify: (req, res, buf) => {
+    if (req.originalUrl.startsWith('/api/payments/webhook')) {
+      req.rawBody = buf;
+    }
+  },
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
@@ -67,14 +124,16 @@ const apiLimiter = rateLimit({
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 app.use('/api/', apiLimiter);
 
 // Stricter rate limit for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 30,
   message: { error: 'Too many authentication attempts' },
+  validate: { xForwardedForHeader: false },
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
@@ -473,7 +532,7 @@ app.get('/', (req, res) => {
     <!-- Demo Credentials -->
     <div class="demo-box">
       <div class="demo-title">
-        <span>🔑 Demo Test Credentials (All passwords: Password@123)</span>
+        <span>🔑 Demo Test Credentials (All passwords: password123)</span>
         <span style="color:#00A651; font-weight:600;">Pre-seeded in DB</span>
       </div>
       <div class="creds-grid">
@@ -534,11 +593,15 @@ if (!fs.existsSync(dataDir)) {
 async function startServer() {
   try {
     const hasUsers = await db.schema.hasTable('users');
+    // Always apply pending migrations so existing databases get schema/security updates
+    const [, applied] = await db.migrate.latest();
+    if (applied.length) {
+      console.log(`[DB] Applied migrations: ${applied.join(', ')}`);
+    }
     if (!hasUsers) {
-      console.log('[DB] Fresh database detected. Running migrations and seeds...');
-      await db.migrate.latest();
+      console.log('[DB] Fresh database detected. Running seeds...');
       await db.seed.run();
-      console.log('[DB] Migrations and seeds finished successfully.');
+      console.log('[DB] Seeds finished successfully.');
     }
   } catch (err) {
     console.error('[DB] Database initialization notice:', err.message);

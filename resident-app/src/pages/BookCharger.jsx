@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth } from '../AuthContext';
 import api from '../services/api';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { ArrowLeft, Calendar, CreditCard, ShieldCheck } from 'lucide-react';
+import PaymentModal from '../components/PaymentModal';
 
 export default function BookCharger() {
   const { id } = useParams();
@@ -14,6 +15,7 @@ export default function BookCharger() {
   const [endTime, setEndTime] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activePaymentTarget, setActivePaymentTarget] = useState(null);
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -21,7 +23,34 @@ export default function BookCharger() {
     api.getCharger(society.id, id).then(d => setCharger(d.charger)).catch(console.error);
   }, [id]);
 
-  const handleBook = async (e) => {
+  const handleBookWithPayment = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await api.createBooking(society.id, {
+        charger_id: parseInt(id),
+        booking_date: date,
+        start_time: startTime,
+        end_time: endTime,
+      });
+
+      // Open checkout payment modal for booking advance deposit (₹50)
+      setActivePaymentTarget({
+        type: 'booking',
+        id: res.booking.id,
+        amount: 50.0,
+        title: `Slot Reservation Deposit — Charger ${charger?.charger_number} (${date})`,
+        societyId: society.id,
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBookDirect = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -53,7 +82,7 @@ export default function BookCharger() {
 
       {error && <div className="error-message">{error}</div>}
 
-      <form onSubmit={handleBook}>
+      <form>
         <div className="form-group">
           <label className="form-label">Date</label>
           <input type="date" className="form-input" value={date} onChange={e => setDate(e.target.value)} required min={new Date().toISOString().split('T')[0]} />
@@ -71,8 +100,10 @@ export default function BookCharger() {
         </div>
 
         {charger && date && startTime && endTime && (
-          <div className="booking-summary">
-            <h4 style={{ marginBottom: '0.75rem', fontSize: 'var(--font-sm)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Booking Summary</h4>
+          <div className="booking-summary" style={{ marginBottom: '1.25rem' }}>
+            <h4 style={{ marginBottom: '0.75rem', fontSize: 'var(--font-sm)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Booking & Checkout Summary
+            </h4>
             <div className="summary-row">
               <span className="label">Charger</span>
               <span>{charger.charger_number} — {charger.name}</span>
@@ -89,13 +120,49 @@ export default function BookCharger() {
               <span className="label">Rate</span>
               <span>₹{charger.price_per_kwh}/kWh</span>
             </div>
+            <div className="summary-row" style={{ borderTop: '1px dashed #233728', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+              <span className="label">Slot Reservation Deposit</span>
+              <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>₹50.00</span>
+            </div>
           </div>
         )}
 
-        <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-          {loading ? 'Booking...' : 'Confirm Booking'}
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <button
+            type="button"
+            className="btn btn-primary btn-block"
+            onClick={handleBookWithPayment}
+            disabled={loading || !date || !startTime || !endTime}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+          >
+            <CreditCard size={16} /> Pay Deposit (₹50) & Confirm Slot
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-ghost btn-block"
+            onClick={handleBookDirect}
+            disabled={loading || !date || !startTime || !endTime}
+            style={{ fontSize: '0.85rem' }}
+          >
+            Confirm Without Pre-Payment
+          </button>
+        </div>
       </form>
+
+      {/* Payment Checkout Modal */}
+      <PaymentModal
+        isOpen={Boolean(activePaymentTarget)}
+        onClose={() => {
+          setActivePaymentTarget(null);
+          navigate('/bookings');
+        }}
+        paymentTarget={activePaymentTarget}
+        onPaymentSuccess={() => {
+          setActivePaymentTarget(null);
+          navigate('/bookings');
+        }}
+      />
     </div>
   );
 }

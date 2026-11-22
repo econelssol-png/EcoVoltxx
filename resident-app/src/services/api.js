@@ -2,7 +2,7 @@
  * API Service — Centralized HTTP client for SocietyCharge
  */
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 class ApiService {
   constructor() {
@@ -51,9 +51,19 @@ class ApiService {
         throw new Error('Authentication failed');
       }
 
-      const json = await response.json();
+      const text = await response.text();
+      let json = {};
+      try {
+        json = text ? JSON.parse(text) : {};
+      } catch {
+        if (!response.ok) {
+          throw new Error(`Server temporarily unavailable (${response.status}). Please try again.`);
+        }
+        throw new Error('Unexpected server response format');
+      }
+
       if (!response.ok) {
-        throw new Error(json.error || 'Request failed');
+        throw new Error(json.error || `Request failed (${response.status})`);
       }
       return json;
     } catch (err) {
@@ -217,8 +227,34 @@ class ApiService {
   }
 
   // Payments
+  getPaymentConfig() {
+    return this.request('/payments/config');
+  }
+
   createPayment(data) {
     return this.request('/payments/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  verifyPayment(data) {
+    return this.request('/payments/verify', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  getPaymentHistory() {
+    return this.request('/payments');
+  }
+
+  getPaymentDetails(paymentId) {
+    return this.request(`/payments/${paymentId}`);
+  }
+
+  simulateMockPayment(data) {
+    return this.request('/payments/mock/simulate', {
       method: 'POST',
       body: JSON.stringify(data),
     });

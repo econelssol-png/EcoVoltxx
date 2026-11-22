@@ -24,7 +24,9 @@ function generateTokens(user) {
     expiresIn: config.jwtExpiresIn,
   });
 
-  const refreshToken = jwt.sign({ id: user.id }, config.jwtRefreshSecret, {
+  const crypto = require('crypto');
+  const nonce = crypto.randomBytes(12).toString('hex');
+  const refreshToken = jwt.sign({ id: user.id, nonce }, config.jwtRefreshSecret, {
     expiresIn: config.jwtRefreshExpiresIn,
   });
 

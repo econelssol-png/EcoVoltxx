@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth } from '../AuthContext';
 import { Search, Building2 } from 'lucide-react';
 import api from '../services/api';
 

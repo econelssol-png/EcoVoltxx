@@ -2,7 +2,7 @@
  * Admin API Service — Centralized HTTP client for SocietyCharge Admin Portal
  */
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 class AdminApiService {
   constructor() {
@@ -49,11 +49,18 @@ class AdminApiService {
       }
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(errorData.error || `Request failed (${res.status})`);
+        const text = await res.text().catch(() => '');
+        let errJson = {};
+        try { errJson = JSON.parse(text); } catch {}
+        throw new Error(errJson.error || `Request failed (${res.status})`);
       }
 
-      return await res.json();
+      const text = await res.text();
+      try {
+        return text ? JSON.parse(text) : {};
+      } catch {
+        return {};
+      }
     } catch (err) {
       console.error(`API Error [${options.method || 'GET'} ${endpoint}]:`, err);
       throw err;
@@ -212,6 +219,50 @@ class AdminApiService {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  // Payment & Financial Endpoints
+  getPaymentConfig() {
+    return this.request('/payments/config');
+  }
+
+  getSocietyPayments(societyId) {
+    return this.request(`/payments/society/${societyId}`);
+  }
+
+  refundPayment(paymentId, data) {
+    return this.request(`/payments/${paymentId}/refund`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Physical Charger & OCPP Integration Endpoints
+  getChargerDiagnostics(societyId, chargerId) {
+    return this.request(`/societies/${societyId}/chargers/${chargerId}/diagnostics`);
+  }
+
+  sendChargerCommand(societyId, chargerId, data) {
+    return this.request(`/societies/${societyId}/chargers/${chargerId}/command`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  getIntegrationConfig(societyId) {
+    return this.request(`/societies/${societyId}/chargers/integration/config`);
+  }
+
+  updateIntegrationConfig(societyId, data) {
+    return this.request(`/societies/${societyId}/chargers/integration/config`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  getIntegrationLogs(societyId, params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return this.request(`/societies/${societyId}/chargers/integration/logs${qs ? '?' + qs : ''}`);
   }
 
   // Subscription Endpoints

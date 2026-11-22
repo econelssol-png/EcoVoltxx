@@ -16,6 +16,9 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 
+# Local database (contains user accounts & password hashes; created and seeded on first start)
+server/data/*.db
+
 # Database temporary files
 server/data/*.db-shm
 server/data/*.db-wal
@@ -27,3 +30,6 @@ Thumbs.db
 
 # Vite / React build outputs (we build fresh during deployment)
 # dist/
+
+# Binaries
+cloudflared.exe

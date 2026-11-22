@@ -3,17 +3,17 @@
  * 
  * All routes scoped under /api/societies/:societyId/sessions
  * 
- * GET    /                   — list sessions
- * POST   /start              — start charging session
- * POST   /:sessionId/stop    — stop charging session
- * GET    /:sessionId         — session details
+ * GET    /                   — list sessions (with payment status)
+ * POST   /start              — start charging session (delegates to charger integration)
+ * POST   /:sessionId/stop    — stop charging session (confirmed by hardware / simulator)
+ * GET    /:sessionId         — session details (with invoice / payment info)
  */
 
 const express = require('express');
 const db = require('../db/knex');
 const { authenticate } = require('../middleware/auth');
 const { enforceTenantIsolation } = require('../middleware/tenantIsolation');
-const chargerSimulator = require('../services/chargerSimulator');
+const chargerIntegrationService = require('../services/chargerIntegrationService');
 
 const router = express.Router({ mergeParams: true });
 
@@ -24,12 +24,20 @@ router.get('/', authenticate, enforceTenantIsolation, async (req, res) => {
       .where({ 'charging_sessions.society_id': req.societyId })
       .join('users', 'charging_sessions.user_id', 'users.id')
       .join('chargers', 'charging_sessions.charger_id', 'chargers.id')
+      .leftJoin('payments', function () {
+        this.on('payments.session_id', '=', 'charging_sessions.id')
+          .andOn('payments.status', '=', db.raw('?', ['success']));
+      })
       .select(
         'charging_sessions.*',
         'users.name as user_name',
         'users.email as user_email',
         'chargers.charger_number',
-        'chargers.location_description as charger_location'
+        'chargers.location_description as charger_location',
+        'chargers.integration_mode',
+        'payments.id as payment_id',
+        'payments.status as payment_status',
+        'payments.transaction_reference as payment_reference'
       );
 
     // Non-admin users only see their own sessions
@@ -44,7 +52,7 @@ router.get('/', authenticate, enforceTenantIsolation, async (req, res) => {
 
     // Pagination
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const limit = parseInt(req.query.limit, 10) || 50;
     const offset = (page - 1) * limit;
 
     const sessions = await query
@@ -68,21 +76,6 @@ router.post('/start', authenticate, enforceTenantIsolation, async (req, res) => 
       return res.status(400).json({ error: 'Charger ID is required' });
     }
 
-    // Validate charger belongs to this society
-    const charger = await db('chargers')
-      .where({ id: charger_id, society_id: req.societyId })
-      .first();
-
-    if (!charger) {
-      return res.status(404).json({ error: 'Charger not found in this society' });
-    }
-
-    if (charger.status !== 'available') {
-      return res.status(400).json({
-        error: `Charger is currently ${charger.status}`,
-      });
-    }
-
     // Check if user already has an active session
     const existingSession = await db('charging_sessions')
       .where({ user_id: req.user.id, society_id: req.societyId, status: 'active' })
@@ -90,7 +83,7 @@ router.post('/start', authenticate, enforceTenantIsolation, async (req, res) => 
 
     if (existingSession) {
       return res.status(400).json({
-        error: 'You already have an active charging session',
+        error: 'You already have an active charging session in progress',
         session: existingSession,
       });
     }
@@ -105,50 +98,35 @@ router.post('/start', authenticate, enforceTenantIsolation, async (req, res) => 
         return res.status(404).json({ error: 'Booking not found' });
       }
 
-      // Mark booking as active
       await db('bookings').where({ id: booking_id }).update({
         status: 'active',
         updated_at: db.fn.now(),
       });
     }
 
-    // Create charging session
-    const [id] = await db('charging_sessions').insert({
-      user_id: req.user.id,
-      society_id: req.societyId,
-      charger_id,
-      booking_id: booking_id || null,
-      start_time: new Date().toISOString(),
-      energy_kwh: 0,
-      cost: 0,
-      price_per_kwh_at_time: charger.price_per_kwh,
-      power_rating_kw_at_time: charger.power_rating_kw,
-      status: 'active',
-      is_simulated: charger.is_simulated,
+    // Dispatch through ChargerIntegrationService (handles both OCPP physical & DEMO simulation)
+    const session = await chargerIntegrationService.startSession({
+      chargerId: parseInt(charger_id, 10),
+      societyId: req.societyId,
+      userId: req.user.id,
+      bookingId: booking_id ? parseInt(booking_id, 10) : null,
     });
 
-    // Start simulated charging
-    await chargerSimulator.startCharging(id);
-
-    const session = await db('charging_sessions')
-      .where({ 'charging_sessions.id': id })
-      .join('chargers', 'charging_sessions.charger_id', 'chargers.id')
-      .select('charging_sessions.*', 'chargers.charger_number')
-      .first();
+    const charger = await db('chargers').where({ id: charger_id }).first();
 
     // Create notification
     await db('notifications').insert({
       user_id: req.user.id,
       society_id: req.societyId,
       title: 'Charging Started',
-      message: `Charging started on Charger ${charger.charger_number}. Rate: ₹${charger.price_per_kwh}/kWh`,
+      message: `Charging started on Charger ${charger.charger_number}. Rate: ₹${charger.price_per_kwh}/kWh (${charger.integration_mode === 'DEMO' ? 'Simulated Telemetry' : 'Real Hardware'})`,
       type: 'charging_started',
     });
 
     res.status(201).json({ session });
   } catch (err) {
-    console.error('Start charging error:', err);
-    res.status(500).json({ error: 'Failed to start charging' });
+    console.error('Start charging error:', err.message);
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -174,8 +152,13 @@ router.post('/:sessionId/stop', authenticate, enforceTenantIsolation, async (req
       return res.status(400).json({ error: 'Session is not active' });
     }
 
-    // Stop simulated charging
-    const finalSession = await chargerSimulator.stopCharging(session.id, req.body.reason || 'user_stopped');
+    // Stop through integration service (waits for physical charger or simulator confirmation)
+    const finalSession = await chargerIntegrationService.stopSession({
+      sessionId: session.id,
+      societyId: req.societyId,
+      userId: req.user.id,
+      reason: req.body.reason || 'user_stopped',
+    });
 
     // Complete associated booking if any
     if (session.booking_id) {
@@ -191,20 +174,20 @@ router.post('/:sessionId/stop', authenticate, enforceTenantIsolation, async (req
       user_id: session.user_id,
       society_id: req.societyId,
       title: 'Charging Completed',
-      message: `Charging completed on Charger ${charger.charger_number}. Energy: ${parseFloat(finalSession.energy_kwh).toFixed(2)} kWh, Cost: ₹${parseFloat(finalSession.cost).toFixed(2)}`,
+      message: `Charging completed on Charger ${charger.charger_number}. Energy: ${parseFloat(finalSession.energy_kwh).toFixed(2)} kWh, Bill: ₹${parseFloat(finalSession.cost).toFixed(2)}.`,
       type: 'charging_completed',
     });
 
     const result = await db('charging_sessions')
       .where({ 'charging_sessions.id': session.id })
       .join('chargers', 'charging_sessions.charger_id', 'chargers.id')
-      .select('charging_sessions.*', 'chargers.charger_number')
+      .select('charging_sessions.*', 'chargers.charger_number', 'chargers.integration_mode')
       .first();
 
     res.json({ session: result });
   } catch (err) {
-    console.error('Stop charging error:', err);
-    res.status(500).json({ error: 'Failed to stop charging' });
+    console.error('Stop charging error:', err.message);
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -215,11 +198,19 @@ router.get('/:sessionId', authenticate, enforceTenantIsolation, async (req, res)
       .where({ 'charging_sessions.id': req.params.sessionId, 'charging_sessions.society_id': req.societyId })
       .join('users', 'charging_sessions.user_id', 'users.id')
       .join('chargers', 'charging_sessions.charger_id', 'chargers.id')
+      .leftJoin('payments', function () {
+        this.on('payments.session_id', '=', 'charging_sessions.id')
+          .andOn('payments.status', '=', db.raw('?', ['success']));
+      })
       .select(
         'charging_sessions.*',
         'users.name as user_name',
         'chargers.charger_number',
-        'chargers.location_description as charger_location'
+        'chargers.location_description as charger_location',
+        'chargers.integration_mode',
+        'payments.id as payment_id',
+        'payments.status as payment_status',
+        'payments.transaction_reference as payment_reference'
       )
       .first();
 
@@ -227,7 +218,6 @@ router.get('/:sessionId', authenticate, enforceTenantIsolation, async (req, res)
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Non-admin can only view their own sessions
     if (session.user_id !== req.user.id &&
       req.user.role !== 'super_admin' &&
       (!req.societyMember || req.societyMember.role !== 'admin')) {

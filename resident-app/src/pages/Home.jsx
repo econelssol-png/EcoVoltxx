@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth } from '../AuthContext';
 import api from '../services/api';
 import { Zap, Battery, MapPin, Clock, IndianRupee, Bell, ChevronRight, AlertCircle } from 'lucide-react';
 

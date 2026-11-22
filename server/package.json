@@ -6,12 +6,13 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js",
+    "dev": "node --watch-path=src src/index.js",
     "db:migrate": "npx knex migrate:latest",
     "db:seed": "npx knex seed:run",
     "db:rollback": "npx knex migrate:rollback --all",
     "db:setup": "npx knex migrate:latest && npx knex seed:run",
-    "db:reset": "npx knex migrate:rollback --all && npx knex migrate:latest && npx knex seed:run"
+    "db:reset": "npx knex migrate:rollback --all && npx knex migrate:latest && npx knex seed:run",
+    "chargers:simulate": "node src/scripts/ocppSimulatorClient.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -24,7 +25,8 @@
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.1.0",
     "socket.io": "^4.7.5",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "ws": "^8.18.0"
   },
   "allowScripts": {
     "better-sqlite3@11.10.0": true

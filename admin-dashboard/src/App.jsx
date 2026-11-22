@@ -28,8 +28,21 @@ import {
   CreditCard,
   Check,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Radio,
+  Activity,
+  FileText,
+  Terminal,
+  Cpu
 } from 'lucide-react';
+
+import ChargerConfigTab from './components/ChargerConfigTab';
+import PaymentsTab from './components/PaymentsTab';
+import IntegrationLogsTab from './components/IntegrationLogsTab';
+import ChargerDiagnosticsModal from './components/ChargerDiagnosticsModal';
+import RefundModal from './components/RefundModal';
+import EditChargerModal from './components/EditChargerModal';
+import ReceiptModal from './components/ReceiptModal';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -58,6 +71,14 @@ export default function App() {
 
   // Modals & form states
   const [showAddChargerModal, setShowAddChargerModal] = useState(false);
+  const [showEditChargerModal, setShowEditChargerModal] = useState(false);
+  const [selectedChargerForEdit, setSelectedChargerForEdit] = useState(null);
+  const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false);
+  const [selectedChargerForDiag, setSelectedChargerForDiag] = useState(null);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [selectedPaymentForRefund, setSelectedPaymentForRefund] = useState(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState(null);
   const [showAddSocietyModal, setShowAddSocietyModal] = useState(false);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [showAssignAdminModal, setShowAssignAdminModal] = useState(false);
@@ -111,10 +132,31 @@ export default function App() {
 
   // Socket.IO for live charger simulation events
   useEffect(() => {
-    if (!selectedSocietyId) return;
+    if (!selectedSocietyId || !currentUser) return;
 
-    const socket = io('/', { path: '/socket.io' });
-    socket.emit('join_society', selectedSocietyId);
+    let closed = false;
+    let retryTimer = null;
+
+    // Token is read on every (re)connect so a refreshed token is picked up
+    const socket = io('/', {
+      path: '/socket.io',
+      auth: (cb) => cb({ token: adminApi.token }),
+    });
+
+    // Rooms are lost on reconnect, so join on every successful connect
+    socket.on('connect', () => {
+      socket.emit('join_society', selectedSocietyId, (res) => {
+        if (res && !res.ok) console.warn('Live updates unavailable:', res.error);
+      });
+    });
+
+    // The server refuses sockets with a missing/expired token; socket.io does not
+    // retry those automatically, so try again once the API layer has refreshed it.
+    socket.on('connect_error', () => {
+      if (closed) return;
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => { if (!closed) socket.connect(); }, 5000);
+    });
 
     socket.on('charger_status_changed', (data) => {
       setChargers(prev => prev.map(c => c.id === data.chargerId ? { ...c, status: data.status } : c));
@@ -130,9 +172,11 @@ export default function App() {
     });
 
     return () => {
+      closed = true;
+      clearTimeout(retryTimer);
       socket.disconnect();
     };
-  }, [selectedSocietyId]);
+  }, [selectedSocietyId, currentUser?.id]);
 
   // Load active tab data
   const fetchData = useCallback(async () => {
@@ -367,6 +411,12 @@ export default function App() {
             <Zap size={18} /> Live Chargers
           </button>
           <button
+            className={`nav-item ${currentTab === 'ocpp-config' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('ocpp-config')}
+          >
+            <Cpu size={18} /> Hardware Integration (OCPP)
+          </button>
+          <button
             className={`nav-item ${currentTab === 'residents' ? 'active' : ''}`}
             onClick={() => setCurrentTab('residents')}
           >
@@ -387,10 +437,16 @@ export default function App() {
 
           <div className="nav-section-title">Finance & Policies</div>
           <button
+            className={`nav-item ${currentTab === 'payments' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('payments')}
+          >
+            <CreditCard size={18} /> Financial Transactions
+          </button>
+          <button
             className={`nav-item ${currentTab === 'subscription' ? 'active' : ''}`}
             onClick={() => setCurrentTab('subscription')}
           >
-            <CreditCard size={18} /> Subscriptions & Plans
+            <Shield size={18} /> Subscriptions & Plans
           </button>
           <button
             className={`nav-item ${currentTab === 'tariffs' ? 'active' : ''}`}
@@ -403,6 +459,12 @@ export default function App() {
             onClick={() => setCurrentTab('reports')}
           >
             <BarChart3 size={18} /> Analytics & Reports
+          </button>
+          <button
+            className={`nav-item ${currentTab === 'logs' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('logs')}
+          >
+            <Terminal size={18} /> Integration Health Logs
           </button>
           <button
             className={`nav-item ${currentTab === 'announcements' ? 'active' : ''}`}
@@ -1223,103 +1285,179 @@ export default function App() {
           )}
 
           {/* TAB 2: LIVE CHARGERS */}
+          {/* TAB 2: LIVE CHARGERS & HARDWARE MANAGEMENT */}
           {currentTab === 'chargers' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc' }}>Society Charging Stations</h3>
-                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Configure power limits, pricing, maintenance mode, and view real-time state</p>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc' }}>Society Charging Stations & Hardware</h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Configure OCPP hardware, power limits, maintenance state, and live diagnostics</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => setShowAddChargerModal(true)}>
-                  <Plus size={16} /> Add New Charger
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button className="btn btn-outline" onClick={() => setCurrentTab('ocpp-config')}>
+                    <Cpu size={16} /> OCPP Integration Config
+                  </button>
+                  <button className="btn btn-primary" onClick={() => {
+                    setSelectedChargerForEdit(null);
+                    setShowEditChargerModal(true);
+                  }}>
+                    <Plus size={16} /> Register Charger
+                  </button>
+                </div>
               </div>
 
               <div className="chargers-grid">
-                {chargers.map(charger => (
-                  <div key={charger.id} className="charger-admin-card">
-                    <div className="charger-header">
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#f8fafc' }}>
-                          {charger.charger_number}
+                {chargers.map(charger => {
+                  const isOcppOnline = charger.is_ocpp_connected || charger.connectivity_status === 'online';
+                  const isProduction = charger.integration_mode === 'PRODUCTION';
+
+                  return (
+                    <div key={charger.id} className="charger-admin-card" style={{ position: 'relative' }}>
+                      <div className="charger-header">
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#f8fafc' }}>
+                              {charger.charger_number}
+                            </div>
+                            {isProduction ? (
+                              <span style={{
+                                fontSize: '0.65rem',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: 'rgba(0, 166, 81, 0.15)',
+                                color: '#00A651',
+                                fontWeight: 700,
+                              }}>
+                                PRODUCTION (OCPP)
+                              </span>
+                            ) : (
+                              <span style={{
+                                fontSize: '0.65rem',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: 'rgba(234, 179, 8, 0.15)',
+                                color: '#facc15',
+                                fontWeight: 700,
+                              }}>
+                                DEMO (SIMULATED)
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                            {charger.name} · <span style={{ color: '#64748b' }}>{charger.vendor || charger.manufacturer || 'EcoVoltX'} ({charger.model || 'Smart-AC'})</span>
+                          </div>
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{charger.name}</div>
-                      </div>
-                      <span className={`badge badge-${charger.status}`}>
-                        <span className={`status-dot ${charger.status}`} />
-                        {charger.status}
-                      </span>
-                    </div>
 
-                    <div className="charger-specs">
-                      <div className="spec-item">
-                        <span className="spec-label">Capacity</span>
-                        <span className="spec-val">{charger.power_output_kw} kW</span>
-                      </div>
-                      <div className="spec-item">
-                        <span className="spec-label">Rate</span>
-                        <span className="spec-val">₹{charger.price_per_kwh}/kWh</span>
-                      </div>
-                      <div className="spec-item">
-                        <span className="spec-label">Connector</span>
-                        <span className="spec-val">{charger.connector_type}</span>
-                      </div>
-                      <div className="spec-item">
-                        <span className="spec-label">Slot</span>
-                        <span className="spec-val">{charger.parking_slot || 'Ground'}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{ flex: 1 }}
-                          onClick={() => {
-                            const newRate = prompt('Enter new price per kWh (₹):', charger.price_per_kwh);
-                            if (newRate && !isNaN(newRate)) {
-                              adminApi.updateCharger(selectedSocietyId, charger.id, { price_per_kwh: parseFloat(newRate) })
-                                .then(() => { showToast('Price updated'); fetchData(); })
-                                .catch(err => showToast(err.message, 'error'));
-                            }
-                          }}
-                        >
-                          <DollarSign size={14} /> Edit Price
-                        </button>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{ flex: 1 }}
-                          onClick={() => {
-                            handleChargerStatusChange(charger.id, charger.status === 'maintenance' ? 'available' : 'maintenance');
-                          }}
-                        >
-                          <Settings size={14} /> {charger.status === 'maintenance' ? 'Online' : 'Maint.'}
-                        </button>
+                        <div style={{ textAlign: 'right' }}>
+                          <span className={`badge badge-${charger.status}`}>
+                            <span className={`status-dot ${charger.status}`} />
+                            {charger.status}
+                          </span>
+                          <div style={{ fontSize: '0.7rem', color: isOcppOnline ? '#00A651' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
+                            {isOcppOnline ? '● WebSocket Online' : '○ Offline'}
+                          </div>
+                        </div>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {charger.status !== 'available' && (
+                      <div className="charger-specs">
+                        <div className="spec-item">
+                          <span className="spec-label">Capacity</span>
+                          <span className="spec-val">{charger.power_rating_kw || charger.power_output_kw || 7.4} kW</span>
+                        </div>
+                        <div className="spec-item">
+                          <span className="spec-label">Rate</span>
+                          <span className="spec-val">₹{charger.price_per_kwh}/kWh</span>
+                        </div>
+                        <div className="spec-item">
+                          <span className="spec-label">Connectors</span>
+                          <span className="spec-val">{charger.connector_count || 1}x {charger.connector_type}</span>
+                        </div>
+                        <div className="spec-item">
+                          <span className="spec-label">Location / Slot</span>
+                          <span className="spec-val">{charger.parking_location || charger.parking_slot || 'Ground Bay'}</span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
                           <button
-                            className="btn btn-primary btn-sm"
-                            style={{ flex: 1 }}
-                            onClick={() => handleChargerStatusChange(charger.id, 'available')}
+                            className="btn btn-outline btn-sm"
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                            onClick={() => {
+                              setSelectedChargerForDiag(charger);
+                              setShowDiagnosticsModal(true);
+                            }}
                           >
-                            Force Available
+                            <Activity size={14} color="#38bdf8" /> Diagnostics
                           </button>
-                        )}
-                        <button
-                          className="btn btn-danger btn-sm"
-                          style={{ flex: 1 }}
-                          onClick={() => handleChargerStatusChange(charger.id, 'faulted')}
-                        >
-                          Simulate Fault
-                        </button>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                            onClick={() => {
+                              setSelectedChargerForEdit(charger);
+                              setShowEditChargerModal(true);
+                            }}
+                          >
+                            <Settings size={14} /> Edit Station
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {charger.status !== 'available' && (
+                            <button
+                              className="btn btn-primary btn-sm"
+                              style={{ flex: 1 }}
+                              onClick={() => handleChargerStatusChange(charger.id, 'available')}
+                            >
+                              Force Available
+                            </button>
+                          )}
+                          <button
+                            className="btn btn-outline btn-sm"
+                            style={{ flex: 1 }}
+                            onClick={() => {
+                              const newMode = isProduction ? 'DEMO' : 'PRODUCTION';
+                              adminApi.updateCharger(selectedSocietyId, charger.id, { integration_mode: newMode })
+                                .then(() => { showToast(`Charger switched to ${newMode} mode`); fetchData(); })
+                                .catch(err => showToast(err.message, 'error'));
+                            }}
+                          >
+                            Toggle Mode ({isProduction ? 'To Demo' : 'To Prod'})
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
+          )}
+
+          {/* TAB: HARDWARE INTEGRATION (OCPP CONFIG) */}
+          {currentTab === 'ocpp-config' && (
+            <ChargerConfigTab societyId={selectedSocietyId} showToast={showToast} />
+          )}
+
+          {/* TAB: FINANCIAL TRANSACTIONS */}
+          {currentTab === 'payments' && (
+            <PaymentsTab
+              societyId={selectedSocietyId}
+              showToast={showToast}
+              onOpenRefund={(p) => {
+                setSelectedPaymentForRefund(p);
+                setShowRefundModal(true);
+              }}
+              onOpenReceipt={(p) => {
+                setSelectedPaymentForReceipt(p);
+                setShowReceiptModal(true);
+              }}
+            />
+          )}
+
+          {/* TAB: INTEGRATION HEALTH & ERROR LOGS */}
+          {currentTab === 'logs' && (
+            <IntegrationLogsTab societyId={selectedSocietyId} showToast={showToast} />
           )}
 
           {/* TAB 3: RESIDENTS & APPROVALS */}
@@ -2057,6 +2195,54 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* MODAL: EDIT / REGISTER CHARGER STATION */}
+      <EditChargerModal
+        isOpen={showEditChargerModal}
+        onClose={() => {
+          setShowEditChargerModal(false);
+          setSelectedChargerForEdit(null);
+        }}
+        charger={selectedChargerForEdit}
+        societyId={selectedSocietyId}
+        showToast={showToast}
+        onSuccess={() => fetchData()}
+      />
+
+      {/* MODAL: CHARGER DIAGNOSTICS & REMOTE COMMANDS */}
+      <ChargerDiagnosticsModal
+        isOpen={showDiagnosticsModal}
+        onClose={() => {
+          setShowDiagnosticsModal(false);
+          setSelectedChargerForDiag(null);
+        }}
+        charger={selectedChargerForDiag}
+        societyId={selectedSocietyId}
+        showToast={showToast}
+        onRefresh={() => fetchData()}
+      />
+
+      {/* MODAL: PROCESS PAYMENT REFUND */}
+      <RefundModal
+        isOpen={showRefundModal}
+        onClose={() => {
+          setShowRefundModal(false);
+          setSelectedPaymentForRefund(null);
+        }}
+        payment={selectedPaymentForRefund}
+        showToast={showToast}
+        onSuccess={() => fetchData()}
+      />
+
+      {/* MODAL: OFFICIAL TAX RECEIPT VIEWER */}
+      <ReceiptModal
+        isOpen={showReceiptModal}
+        onClose={() => {
+          setShowReceiptModal(false);
+          setSelectedPaymentForReceipt(null);
+        }}
+        data={selectedPaymentForReceipt}
+      />
     </div>
   );
 }

@@ -28,8 +28,8 @@ router.get('/chargers', async (req, res) => {
       )
       .orderBy('chargers.status', 'asc');
 
-    // Add public metadata
-    const publicChargers = chargers.map((c) => ({
+    // Add public metadata (never expose the charger's OCPP auth key)
+    const publicChargers = chargers.map(({ auth_key, ...c }) => ({
       ...c,
       is_public: true,
       access_hours: '24/7 Open Access',
@@ -111,11 +111,12 @@ router.post('/charge/start', async (req, res) => {
     await chargerSimulator.startCharging(sessionId);
 
     const session = await db('charging_sessions').where({ id: sessionId }).first();
+    const { auth_key, ...publicCharger } = charger;
 
     res.status(201).json({
       message: '24/7 Public Charging Started!',
       session,
-      charger: { ...charger, status: 'charging' },
+      charger: { ...publicCharger, status: 'charging' },
       user: { name: user.name, phone },
     });
   } catch (err) {

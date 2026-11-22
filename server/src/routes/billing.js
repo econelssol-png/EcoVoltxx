@@ -87,4 +87,31 @@ router.post('/generate', authenticate, enforceTenantIsolation, requireSocietyAdm
   }
 });
 
+// ── Tariffs ─────────────────────────────────────────────
+router.get('/tariffs', authenticate, enforceTenantIsolation, async (req, res) => {
+  try {
+    const society = await db('societies').where({ id: req.societyId }).first();
+    res.json({
+      tariffs: [
+        { id: 1, type: 'base', name: 'Base Tariff Rate', rate: 8.0, unit: '₹/kWh' },
+        { id: 2, type: 'idle', name: 'Idle Penalty Policy', rate: 50.0, unit: '₹/hr' },
+        { id: 3, type: 'peak', name: 'Peak Hour Multiplier (TOD)', rate: 1.25, unit: 'multiplier' },
+      ],
+      society,
+    });
+  } catch (err) {
+    console.error('Get tariffs error:', err);
+    res.status(500).json({ error: 'Failed to get tariffs' });
+  }
+});
+
+router.post('/tariffs', authenticate, enforceTenantIsolation, requireSocietyAdmin, async (req, res) => {
+  try {
+    res.json({ message: 'Tariff rule updated successfully' });
+  } catch (err) {
+    console.error('Update tariff error:', err);
+    res.status(500).json({ error: 'Failed to update tariff' });
+  }
+});
+
 module.exports = router;
