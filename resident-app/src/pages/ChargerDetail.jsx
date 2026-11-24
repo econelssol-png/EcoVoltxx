@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import api from '../services/api';
-import { Zap, MapPin, ArrowLeft, Calendar, Clock, IndianRupee, Play, Plug } from 'lucide-react';
+import { ArrowLeft, Calendar, Play } from 'lucide-react';
 
 export default function ChargerDetail() {
   const { id } = useParams();
@@ -56,57 +56,59 @@ export default function ChargerDetail() {
       </button>
 
       {/* Charger Header */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <div className={`charger-icon ${charger.status}`} style={{ width: 72, height: 72, margin: '0 auto 1rem', borderRadius: 'var(--radius-lg)' }}>
-          <Zap size={32} />
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <span className="bay" style={{ height: '28px', padding: '0 8px', fontSize: 'var(--font-sm)' }}>{charger.charger_number}</span>
+          <span className={`status-badge ${charger.status}`}>
+            <span className={`status-dot ${charger.status}`} />
+            {charger.status}
+          </span>
         </div>
-        <h2 style={{ fontSize: 'var(--font-xl)', marginBottom: '4px' }}>{charger.charger_number}</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-sm)' }}>{charger.name}</p>
-        <span className={`status-badge ${charger.status}`} style={{ marginTop: '0.5rem' }}>
-          <span className={`status-dot ${charger.status}`} />
-          {charger.status}
-        </span>
+        <h2 style={{ fontSize: 'var(--font-2xl)', lineHeight: 1.15, fontWeight: 500 }}>{charger.name}</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-sm)', marginTop: '4px' }}>{charger.location_description}</p>
       </div>
 
       {/* Details */}
-      <div className="card" style={{ marginBottom: '1rem' }}>
+      <div className="profile-section" style={{ marginBottom: '16px' }}>
         <div className="profile-row">
-          <span className="label"><MapPin size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Location</span>
-          <span className="value">{charger.location_description}</span>
-        </div>
-        <div className="profile-row">
-          <span className="label"><Plug size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Connector</span>
+          <span className="label">Connector</span>
           <span className="value">{charger.connector_type}</span>
         </div>
         <div className="profile-row">
-          <span className="label"><Zap size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Power</span>
-          <span className="value">{charger.power_rating_kw} kW</span>
+          <span className="label">Power</span>
+          <span className="value mono">{charger.power_rating_kw} kW</span>
         </div>
         <div className="profile-row">
-          <span className="label"><IndianRupee size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Rate</span>
-          <span className="value">₹{charger.price_per_kwh}/kWh</span>
+          <span className="label">Rate</span>
+          <span className="value mono">₹{parseFloat(charger.price_per_kwh).toFixed(2)}/kWh</span>
         </div>
       </div>
 
-      {/* Active Session Info */}
+      {/* Your active session here: the meter */}
       {activeSession && (
-        <div className="card" style={{ marginBottom: '1rem', borderColor: 'rgba(34,211,238,0.3)' }}>
-          <h4 style={{ color: 'var(--accent-primary)', marginBottom: '0.5rem', fontSize: 'var(--font-sm)' }}>Currently Charging</h4>
-          <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)' }}>
-            Energy: {parseFloat(activeSession.energy_kwh).toFixed(2)} kWh • Cost: ₹{parseFloat(activeSession.cost).toFixed(2)}
-          </p>
+        <div className="session-banner" style={{ marginBottom: '16px' }}>
+          <div className="session-stats">
+            <div className="session-stat">
+              <div className="value">{parseFloat(activeSession.energy_kwh || 0).toFixed(3)}</div>
+              <div className="label">kWh delivered</div>
+            </div>
+            <div className="session-stat">
+              <div className="value">₹{parseFloat(activeSession.cost || 0).toFixed(2)}</div>
+              <div className="label">Cost so far</div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
         {charger.status === 'available' && (
           <>
             <button className="btn btn-primary btn-block" onClick={handleStartCharging} disabled={starting}>
-              <Play size={18} /> {starting ? 'Starting...' : 'Start Charging Now'}
+              <Play size={16} strokeWidth={1.5} /> {starting ? 'Starting' : 'Start charging'}
             </button>
             <button className="btn btn-secondary btn-block" onClick={() => navigate(`/chargers/${charger.id}/book`)}>
-              <Calendar size={18} /> Book for Later
+              <Calendar size={16} strokeWidth={1.5} /> Book a slot
             </button>
           </>
         )}

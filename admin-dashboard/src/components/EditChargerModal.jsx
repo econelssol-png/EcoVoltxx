@@ -107,34 +107,34 @@ export default function EditChargerModal({ isOpen, onClose, charger, societyId, 
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{
         background: '#141e33',
         borderRadius: '16px',
-        border: '1px solid #1e293b',
+        border: '1px solid var(--border-color)',
         width: '100%',
         maxWidth: '560px',
         maxHeight: '90vh',
         overflowY: 'auto',
         padding: '24px',
-        color: '#f8fafc',
+        color: 'var(--text-primary)',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '36px', height: '36px', borderRadius: '8px',
-              background: 'rgba(0, 166, 81, 0.15)', color: '#00A651',
+              background: 'rgba(237, 237, 237, 0.06)', color: 'var(--accent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <Zap size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 500 }}>
                 {charger ? `Edit Charger ${charger.charger_number}` : 'Register New EV Charger'}
               </h3>
-              <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                 Configure hardware identity, OCPP parameters, and integration mode
               </span>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
             <X size={20} />
           </button>
         </div>
@@ -142,13 +142,13 @@ export default function EditChargerModal({ isOpen, onClose, charger, societyId, 
         <form onSubmit={handleSubmit}>
           {/* Integration Mode Selector */}
           <div style={{
-            background: formData.integration_mode === 'PRODUCTION' ? 'rgba(0, 166, 81, 0.12)' : 'rgba(234, 179, 8, 0.12)',
-            border: `1px solid ${formData.integration_mode === 'PRODUCTION' ? '#00A651' : 'rgba(234, 179, 8, 0.4)'}`,
+            background: formData.integration_mode === 'PRODUCTION' ? 'rgba(237, 237, 237, 0.06)' : 'rgba(234, 179, 8, 0.12)',
+            border: `1px solid ${formData.integration_mode === 'PRODUCTION' ? 'var(--accent)' : 'rgba(234, 179, 8, 0.4)'}`,
             borderRadius: '10px',
             padding: '12px 16px',
             marginBottom: '20px',
           }}>
-            <label className="form-label" style={{ fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+            <label className="form-label" style={{ fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}>
               Charger Integration Mode
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -158,9 +158,9 @@ export default function EditChargerModal({ isOpen, onClose, charger, societyId, 
                 style={{
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: formData.integration_mode === 'DEMO' ? '2px solid #facc15' : '1px solid #1e293b',
-                  background: formData.integration_mode === 'DEMO' ? 'rgba(234, 179, 8, 0.2)' : '#0b1120',
-                  color: formData.integration_mode === 'DEMO' ? '#facc15' : '#94a3b8',
+                  border: formData.integration_mode === 'DEMO' ? '2px solid #facc15' : '1px solid var(--border-color)',
+                  background: formData.integration_mode === 'DEMO' ? 'rgba(234, 179, 8, 0.2)' : 'var(--bg-input)',
+                  color: formData.integration_mode === 'DEMO' ? 'var(--accent-amber)' : 'var(--text-secondary)',
                   fontWeight: 600,
                   fontSize: '0.82rem',
                   cursor: 'pointer',
@@ -174,9 +174,9 @@ export default function EditChargerModal({ isOpen, onClose, charger, societyId, 
                 style={{
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: formData.integration_mode === 'PRODUCTION' ? '2px solid #00A651' : '1px solid #1e293b',
-                  background: formData.integration_mode === 'PRODUCTION' ? 'rgba(0, 166, 81, 0.2)' : '#0b1120',
-                  color: formData.integration_mode === 'PRODUCTION' ? '#00A651' : '#94a3b8',
+                  border: formData.integration_mode === 'PRODUCTION' ? '2px solid #00A651' : '1px solid var(--border-color)',
+                  background: formData.integration_mode === 'PRODUCTION' ? 'rgba(237, 237, 237, 0.06)' : 'var(--bg-input)',
+                  color: formData.integration_mode === 'PRODUCTION' ? 'var(--accent)' : 'var(--text-secondary)',
                   fontWeight: 600,
                   fontSize: '0.82rem',
                   cursor: 'pointer',
@@ -185,7 +185,7 @@ export default function EditChargerModal({ isOpen, onClose, charger, societyId, 
                 PRODUCTION (Physical OCPP)
               </button>
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '6px', display: 'block' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '6px', display: 'block' }}>
               {formData.integration_mode === 'PRODUCTION'
                 ? 'Production mode requires compatible physical charger connected via OCPP 1.6-J WebSocket. Simulated charging is disabled.'
                 : 'Demo mode uses simulated telemetry. Ideal for staging and resident app workflows without physical hardware.'}

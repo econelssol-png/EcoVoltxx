@@ -66,10 +66,10 @@ export default function IntegrationLogsTab({ societyId, showToast }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc' }}>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 500, color: 'var(--text-primary)' }}>
             Integration Health & Hardware Error Logs
           </h3>
-          <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             Real-time audit log of OCPP 1.6-J messages, charger connectivity drops, and payment gateway webhooks
           </p>
         </div>
@@ -89,7 +89,7 @@ export default function IntegrationLogsTab({ societyId, showToast }) {
         background: '#0f172a',
         padding: '14px 18px',
         borderRadius: '12px',
-        border: '1px solid #1e293b',
+        border: '1px solid var(--border-color)',
         marginBottom: '20px',
         display: 'flex',
         gap: '16px',
@@ -97,7 +97,7 @@ export default function IntegrationLogsTab({ societyId, showToast }) {
         alignItems: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 600 }}>Severity Level:</span>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Severity Level:</span>
           <select
             className="form-select"
             style={{ width: 'auto', padding: '6px 12px' }}
@@ -112,7 +112,7 @@ export default function IntegrationLogsTab({ societyId, showToast }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 600 }}>Event Category:</span>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Event Category:</span>
           <select
             className="form-select"
             style={{ width: 'auto', padding: '6px 12px' }}
@@ -150,9 +150,9 @@ export default function IntegrationLogsTab({ societyId, showToast }) {
 
                 return (
                   <tr key={log.id} style={{ background: isError ? 'rgba(239, 68, 68, 0.05)' : 'transparent' }}>
-                    <td style={{ fontFamily: 'monospace', color: '#94a3b8', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                    <td style={{ fontFamily: 'monospace', color: 'var(--text-secondary)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                       {new Date(log.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                         {new Date(log.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </div>
                     </td>
@@ -160,11 +160,11 @@ export default function IntegrationLogsTab({ societyId, showToast }) {
                     <td>
                       <span style={{
                         fontSize: '0.7rem',
-                        fontWeight: 700,
+                        fontWeight: 500,
                         padding: '2px 8px',
                         borderRadius: '4px',
-                        background: isError ? 'rgba(239, 68, 68, 0.15)' : (isWarn ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'),
-                        color: isError ? '#ef4444' : (isWarn ? '#f59e0b' : '#10b981'),
+                        background: isError ? 'rgba(239, 68, 68, 0.15)' : (isWarn ? 'rgba(237, 237, 237, 0.06)' : 'rgba(16, 185, 129, 0.15)'),
+                        color: isError ? 'var(--accent-rose)' : (isWarn ? 'var(--accent-amber)' : '#10b981'),
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '4px',
@@ -177,17 +177,17 @@ export default function IntegrationLogsTab({ societyId, showToast }) {
                     </td>
 
                     <td>
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#38bdf8' }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--text-primary)' }}>
                         {log.source}
                       </span>
                     </td>
 
-                    <td style={{ fontWeight: 500, color: '#f8fafc', maxWidth: '380px' }}>
+                    <td style={{ fontWeight: 500, color: 'var(--text-primary)', maxWidth: '380px' }}>
                       {log.message}
                     </td>
 
                     <td>
-                      <span style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                         {log.charger_id ? `Charger #${log.charger_id}` : 'Platform'}
                       </span>
                     </td>
@@ -203,7 +203,7 @@ export default function IntegrationLogsTab({ societyId, showToast }) {
                           View JSON
                         </button>
                       ) : (
-                        <span style={{ color: '#64748b', fontSize: '0.75rem' }}>—</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
                       )}
                     </td>
                   </tr>
@@ -212,7 +212,7 @@ export default function IntegrationLogsTab({ societyId, showToast }) {
 
               {logs.length === 0 && (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     No integration logs found matching the filter criteria.
                   </td>
                 </tr>
@@ -227,20 +227,20 @@ export default function IntegrationLogsTab({ societyId, showToast }) {
         <div className="modal-overlay" onClick={() => setSelectedLog(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px' }}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--text-primary)' }}>
                 Event Payload Inspector
               </h3>
               <button className="modal-close" onClick={() => setSelectedLog(null)}>✕</button>
             </div>
-            <div style={{ marginBottom: '14px', fontSize: '0.85rem', color: '#94a3b8' }}>
+            <div style={{ marginBottom: '14px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               <strong>Message:</strong> {selectedLog.message}
             </div>
             <pre style={{
               background: '#070b14',
-              color: '#38bdf8',
+              color: 'var(--text-primary)',
               padding: '16px',
               borderRadius: '8px',
-              border: '1px solid #1e293b',
+              border: '1px solid var(--border-color)',
               fontSize: '0.8rem',
               overflowX: 'auto',
               maxHeight: '340px',

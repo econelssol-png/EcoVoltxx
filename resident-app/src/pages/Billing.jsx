@@ -36,22 +36,22 @@ export default function Billing() {
   return (
     <div className="page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 className="section-title" style={{ margin: 0 }}>Billing & Invoices</h2>
+        <h2 className="section-title" style={{ margin: 0 }}>Billing</h2>
         <button
           type="button"
           className="btn btn-secondary btn-sm"
           onClick={() => navigate('/payments')}
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
         >
-          <CreditCard size={14} /> Payment History
+          <CreditCard size={16} strokeWidth={1.5} /> Payments
         </button>
       </div>
 
       {/* Current Month Summary */}
       {billing?.currentMonth && (
         <div className="session-banner" style={{ marginBottom: '1.5rem' }}>
-          <h4 style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem' }}>
-            Current Month Unbilled — {monthNames[billing.currentMonth.month]} {billing.currentMonth.year}
+          <h4 style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+            Unbilled, {monthNames[billing.currentMonth.month]} {billing.currentMonth.year}
           </h4>
           <div className="session-stats">
             <div className="session-stat">
@@ -72,7 +72,7 @@ export default function Billing() {
 
       {/* Invoice History */}
       <div className="section-header" style={{ marginBottom: '1rem' }}>
-        <h3 className="section-title" style={{ fontSize: 'var(--font-base)', margin: 0 }}>Monthly Invoices</h3>
+        <h3 className="section-title" style={{ fontSize: 'var(--font-base)', margin: 0 }}>Monthly invoices</h3>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -97,7 +97,7 @@ export default function Billing() {
               </div>
               <div className="history-detail">
                 <span className="label">Amount</span>
-                <span className="value" style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>₹{parseFloat(inv.total_amount).toFixed(2)}</span>
+                <span className="value" style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>₹{parseFloat(inv.total_amount).toFixed(2)}</span>
               </div>
             </div>
 
@@ -115,7 +115,7 @@ export default function Billing() {
                   })}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                 >
-                  <CreditCard size={14} /> Pay Now ₹{parseFloat(inv.total_amount).toFixed(0)}
+                  <CreditCard size={16} strokeWidth={1.5} /> Pay ₹{parseFloat(inv.total_amount).toFixed(2)}
                 </button>
               )}
 
@@ -130,7 +130,7 @@ export default function Billing() {
                   })}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                 >
-                  <FileText size={14} /> View Receipt
+                  <FileText size={16} strokeWidth={1.5} /> View receipt
                 </button>
               )}
             </div>

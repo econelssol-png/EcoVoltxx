@@ -39,7 +39,7 @@ export default function Bookings() {
 
   return (
     <div className="page">
-      <h2 className="section-title" style={{ marginBottom: '1rem' }}>My Bookings</h2>
+      <h2 className="section-title" style={{ marginBottom: '1rem' }}>Bookings</h2>
 
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', overflowX: 'auto' }}>
         {['', 'upcoming', 'active', 'completed', 'cancelled'].map(f => (

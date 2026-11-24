@@ -93,7 +93,7 @@ export default function Notifications() {
           <div className="empty-state">
             <Bell size={48} />
             <h3>No notifications</h3>
-            <p>You're all caught up!</p>
+            <p>You're all caught up</p>
           </div>
         )}
       </div>

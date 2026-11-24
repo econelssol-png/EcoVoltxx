@@ -61,7 +61,7 @@ export default function JoinSociety() {
         {error && <div className="error-message">{error}</div>}
 
         <div className="form-group">
-          <label className="form-label">Society Code</label>
+          <label className="form-label">Society code</label>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <input type="text" className="form-input" placeholder="e.g. GVR2024" value={code} onChange={e => setCode(e.target.value.toUpperCase())} style={{ flex: 1 }} />
             <button className="btn btn-secondary" onClick={handleLookup} disabled={loading}>
@@ -80,12 +80,12 @@ export default function JoinSociety() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Your Flat/Apartment Number</label>
+              <label className="form-label">Flat number</label>
               <input type="text" className="form-input" placeholder="e.g. A-101" value={flatNumber} onChange={e => setFlatNumber(e.target.value)} />
             </div>
 
             <button className="btn btn-primary btn-block" onClick={handleJoin} disabled={loading}>
-              {loading ? 'Joining...' : 'Join Society'}
+              {loading ? 'Joining' : 'Join society'}
             </button>
           </div>
         )}
@@ -97,7 +97,7 @@ export default function JoinSociety() {
         </div>
 
         <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
-          <strong style={{ color: 'var(--text-secondary)' }}>Demo Codes:</strong><br />
+          <strong style={{ color: 'var(--text-secondary)' }}>Demo codes</strong><br />
           Green Valley: GVR2024<br />
           Sunrise Towers: SRT2024
         </div>

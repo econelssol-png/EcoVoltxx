@@ -72,34 +72,34 @@ export default function ChargerDiagnosticsModal({ isOpen, onClose, charger, soci
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{
         background: '#141e33',
         borderRadius: '16px',
-        border: '1px solid #1e293b',
+        border: '1px solid var(--border-color)',
         width: '100%',
         maxWidth: '640px',
         maxHeight: '90vh',
         overflowY: 'auto',
         padding: '24px',
-        color: '#f8fafc',
+        color: 'var(--text-primary)',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '36px', height: '36px', borderRadius: '8px',
-              background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8',
+              background: 'rgba(237, 237, 237, 0.06)', color: 'var(--text-primary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <Activity size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 500 }}>
                 {charger.charger_number} — Hardware Diagnostics
               </h3>
-              <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                 Vendor: {charger.vendor || 'EcoVoltX'} · Model: {charger.model || 'Smart-AC'}
               </span>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
             <X size={20} />
           </button>
         </div>
@@ -108,7 +108,7 @@ export default function ChargerDiagnosticsModal({ isOpen, onClose, charger, soci
         <div style={{
           padding: '12px 16px',
           borderRadius: '10px',
-          background: isOnline ? 'rgba(0, 166, 81, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+          background: isOnline ? 'rgba(237, 237, 237, 0.06)' : 'rgba(239, 68, 68, 0.1)',
           border: `1px solid ${isOnline ? 'rgba(0, 166, 81, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
           marginBottom: '20px',
           display: 'flex',
@@ -116,24 +116,24 @@ export default function ChargerDiagnosticsModal({ isOpen, onClose, charger, soci
           justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Radio size={18} color={isOnline ? '#00A651' : '#ef4444'} />
+            <Radio size={18} color={isOnline ? 'var(--accent)' : 'var(--accent-rose)'} />
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: isOnline ? '#00A651' : '#ef4444' }}>
+              <div style={{ fontWeight: 500, fontSize: '0.88rem', color: isOnline ? 'var(--accent)' : 'var(--accent-rose)' }}>
                 OCPP Central System Status: {isOnline ? 'ONLINE & CONNECTED' : 'OFFLINE / DISCONNECTED'}
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                 Mode: <strong>{charger.integration_mode || 'DEMO'}</strong> · OCPP: {charger.ocpp_version || '1.6J'}
               </div>
             </div>
           </div>
-          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             Last Ping: {charger.last_heartbeat ? new Date(charger.last_heartbeat).toLocaleTimeString() : 'Never'}
           </span>
         </div>
 
         {/* Connector Breakdown Cards */}
         <div style={{ marginBottom: '20px' }}>
-          <h4 style={{ fontSize: '0.88rem', color: '#cbd5e1', fontWeight: 600, marginBottom: '10px' }}>
+          <h4 style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '10px' }}>
             Connector Status & Availability
           </h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
@@ -145,21 +145,21 @@ export default function ChargerDiagnosticsModal({ isOpen, onClose, charger, soci
 
               return (
                 <div key={connId} style={{
-                  background: '#0b1120',
+                  background: 'var(--bg-input)',
                   padding: '14px',
                   borderRadius: '10px',
-                  border: '1px solid #1e293b',
+                  border: '1px solid var(--border-color)',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#f8fafc' }}>
+                    <span style={{ fontWeight: 500, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
                       Connector #{connId} ({connType})
                     </span>
                     <span className={`badge badge-${connStatus.toLowerCase()}`}>
                       {connStatus}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '8px' }}>
-                    Meter Reading: <strong style={{ color: '#00A651' }}>{meterKwh} kWh</strong>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    Meter Reading: <strong style={{ color: 'var(--accent)' }}>{meterKwh} kWh</strong>
                   </div>
                   <button
                     type="button"
@@ -178,7 +178,7 @@ export default function ChargerDiagnosticsModal({ isOpen, onClose, charger, soci
 
         {/* Remote Central System Commands (Rule 13: Confirmed before marking success) */}
         <div style={{ marginBottom: '20px' }}>
-          <h4 style={{ fontSize: '0.88rem', color: '#cbd5e1', fontWeight: 600, marginBottom: '10px' }}>
+          <h4 style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '10px' }}>
             Remote Hardware Operations
           </h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -196,7 +196,7 @@ export default function ChargerDiagnosticsModal({ isOpen, onClose, charger, soci
               className="btn btn-outline btn-sm"
               disabled={executingCommand}
               onClick={() => handleSendCommand('Reset', { type: 'Hard' })}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: 'var(--accent-amber)', borderColor: 'rgba(237, 237, 237, 0.06)' }}
             >
               <RefreshCw size={14} /> Remote Hard Reboot
             </button>
@@ -205,13 +205,13 @@ export default function ChargerDiagnosticsModal({ isOpen, onClose, charger, soci
 
         {/* Recent Command Audit Trail */}
         <div>
-          <h4 style={{ fontSize: '0.88rem', color: '#cbd5e1', fontWeight: 600, marginBottom: '10px' }}>
+          <h4 style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '10px' }}>
             Hardware Command Audit History
           </h4>
           <div style={{
-            background: '#0b1120',
+            background: 'var(--bg-input)',
             borderRadius: '10px',
-            border: '1px solid #1e293b',
+            border: '1px solid var(--border-color)',
             maxHeight: '180px',
             overflowY: 'auto',
             fontSize: '0.78rem',
@@ -220,34 +220,33 @@ export default function ChargerDiagnosticsModal({ isOpen, onClose, charger, soci
               diagnostics.recent_commands.map((cmd) => (
                 <div key={cmd.id} style={{
                   padding: '8px 12px',
-                  borderBottom: '1px solid #1e293b',
+                  borderBottom: '1px solid var(--border-color)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}>
                   <div>
-                    <span style={{ fontWeight: 600, color: '#f8fafc' }}>{cmd.command}</span>
-                    <span style={{ color: '#64748b', marginLeft: '6px' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cmd.command}</span>
+                    <span style={{ color: 'var(--text-muted)', marginLeft: '6px' }}>
                       (Connector #{cmd.connector_id || 1})
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{
-                      fontWeight: 700,
-                      color: cmd.status === 'accepted' ? '#00A651' : (cmd.status === 'pending' ? '#f59e0b' : '#ef4444'),
-                      textTransform: 'uppercase',
-                      fontSize: '0.7rem',
+                      fontWeight: 500,
+                      color: cmd.status === 'accepted' ? 'var(--accent)' : (cmd.status === 'pending' ? 'var(--accent-amber)' : 'var(--accent-rose)'),
+                      fontSize: '12px',
                     }}>
                       {cmd.status}
                     </span>
-                    <span style={{ color: '#64748b', fontSize: '0.7rem' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
                       {new Date(cmd.sent_at).toLocaleTimeString()}
                     </span>
                   </div>
                 </div>
               ))
             ) : (
-              <div style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+              <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>
                 No recent commands dispatched to this charger.
               </div>
             )}

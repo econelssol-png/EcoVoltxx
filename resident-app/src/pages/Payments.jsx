@@ -54,7 +54,7 @@ export default function Payments() {
     <div className="page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
-          <h2 className="section-title" style={{ margin: 0 }}>Payment History</h2>
+          <h2 className="section-title" style={{ margin: 0 }}>Payment history</h2>
           <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
             All EV charging transactions & receipt records
           </span>
@@ -82,7 +82,7 @@ export default function Payments() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#f8fafc' }}>
+                    <span style={{ fontWeight: 500, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
                       {p.transaction_reference || `TXN_${p.id}`}
                     </span>
                     {p.is_test ? (
@@ -136,7 +136,7 @@ export default function Payments() {
               {/* Related item info */}
               <div style={{
                 fontSize: '0.82rem',
-                color: '#cbd5e1',
+                color: 'var(--text-secondary)',
                 marginBottom: '0.75rem',
                 background: '#0d1510',
                 padding: '0.5rem 0.75rem',
@@ -153,7 +153,7 @@ export default function Payments() {
                   <span>Slot Booking #{p.booking_id} {p.booking_date ? `(${p.booking_date})` : ''}</span>
                 )}
                 {!p.invoice_id && !p.session_id && !p.booking_id && (
-                  <span>EV Charging Account Transaction</span>
+                  <span>EV charging payment</span>
                 )}
               </div>
 
@@ -165,7 +165,7 @@ export default function Payments() {
                 </div>
                 <div className="history-detail" style={{ textAlign: 'right' }}>
                   <span className="label" style={{ fontSize: '0.75rem' }}>Amount</span>
-                  <span className="value" style={{ color: isRefunded ? '#ef4444' : 'var(--accent-primary)', fontSize: '1.05rem', fontWeight: 700 }}>
+                  <span className="value" style={{ color: isRefunded ? 'var(--red)' : 'var(--accent-primary)', fontSize: '1.05rem', fontWeight: 500 }}>
                     ₹{parseFloat(p.amount).toFixed(2)}
                   </span>
                 </div>

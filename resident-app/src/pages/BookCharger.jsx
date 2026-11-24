@@ -90,23 +90,23 @@ export default function BookCharger() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div className="form-group">
-            <label className="form-label">Start Time</label>
+            <label className="form-label">Start time</label>
             <input type="time" className="form-input" value={startTime} onChange={e => setStartTime(e.target.value)} required />
           </div>
           <div className="form-group">
-            <label className="form-label">End Time</label>
+            <label className="form-label">End time</label>
             <input type="time" className="form-input" value={endTime} onChange={e => setEndTime(e.target.value)} required />
           </div>
         </div>
 
         {charger && date && startTime && endTime && (
           <div className="booking-summary" style={{ marginBottom: '1.25rem' }}>
-            <h4 style={{ marginBottom: '0.75rem', fontSize: 'var(--font-sm)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <h4 style={{ marginBottom: '0.75rem', fontSize: 'var(--font-sm)', color: 'var(--text-muted)' }}>
               Booking & Checkout Summary
             </h4>
             <div className="summary-row">
               <span className="label">Charger</span>
-              <span>{charger.charger_number} — {charger.name}</span>
+              <span><span className="bay">{charger.charger_number}</span> {charger.name}</span>
             </div>
             <div className="summary-row">
               <span className="label">Date</span>
@@ -121,8 +121,8 @@ export default function BookCharger() {
               <span>₹{charger.price_per_kwh}/kWh</span>
             </div>
             <div className="summary-row" style={{ borderTop: '1px dashed #233728', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
-              <span className="label">Slot Reservation Deposit</span>
-              <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>₹50.00</span>
+              <span className="label">Slot booking deposit</span>
+              <span style={{ fontWeight: 500, color: 'var(--accent-primary)' }}>₹50.00</span>
             </div>
           </div>
         )}

@@ -31,7 +31,7 @@ export default function Sessions() {
 
   return (
     <div className="page">
-      <h2 className="section-title" style={{ marginBottom: '1.25rem' }}>Charging History</h2>
+      <h2 className="section-title" style={{ marginBottom: '1.25rem' }}>Charging history</h2>
 
       <div className="history-list">
         {sessions.map(s => {
@@ -91,7 +91,7 @@ export default function Sessions() {
                 </div>
                 <div className="history-detail">
                   <span className="label"><IndianRupee size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> Bill</span>
-                  <span className="value" style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>₹{cost.toFixed(2)}</span>
+                  <span className="value" style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>₹{cost.toFixed(2)}</span>
                 </div>
               </div>
 

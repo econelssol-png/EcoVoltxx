@@ -45,6 +45,13 @@ import LoginScreen from './components/LoginScreen';
 import EditChargerModal from './components/EditChargerModal';
 import ReceiptModal from './components/ReceiptModal';
 
+const TAB_TITLES = {
+  dashboard: 'Dashboard', chargers: 'Chargers', 'ocpp-config': 'Hardware (OCPP)', residents: 'Residents',
+  bookings: 'Bookings', sessions: 'Sessions', payments: 'Payments', subscription: 'Plan', tariffs: 'Tariffs',
+  reports: 'Reports', logs: 'Integration logs', announcements: 'Announcements',
+  'platform-subscriptions': 'Subscriptions', societies: 'Societies',
+};
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [societiesList, setSocietiesList] = useState([]);
@@ -319,7 +326,7 @@ export default function App() {
         charging_type: form.charging_type.value,
         parking_slot: form.parking_slot.value,
       });
-      showToast('Charger created successfully!');
+      showToast('Charger created successfully');
       setShowAddChargerModal(false);
       fetchData();
     } catch (err) {
@@ -339,7 +346,7 @@ export default function App() {
         state: form.state.value,
         default_price_per_kwh: parseFloat(form.default_price.value) || 8.0,
       });
-      showToast('Society registered!');
+      showToast('Society registered');
       setShowAddSocietyModal(false);
       fetchData();
     } catch (err) {
@@ -357,7 +364,7 @@ export default function App() {
         message: form.message.value,
         type: 'announcement',
       });
-      showToast('Announcement sent to all society members!');
+      showToast('Announcement sent to all society members');
       setShowBroadcastModal(false);
     } catch (err) {
       showToast(err.message, 'error');
@@ -420,7 +427,7 @@ export default function App() {
 
   if (!authChecked) {
     return (
-      <div style={{ minHeight: '100vh', background: '#070d19', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+      <div style={{ minHeight: '100vh', background: '#070d19', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
         Loading EcoVoltX Admin…
       </div>
     );
@@ -430,7 +437,7 @@ export default function App() {
     return (
       <>
         {toast && (
-          <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 9999, background: toast.type === 'error' ? '#ef4444' : '#00A651', color: '#fff', padding: '12px 20px', borderRadius: '8px', fontWeight: 600 }}>
+          <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 9999, background: toast.type === 'error' ? 'var(--accent-rose)' : 'var(--accent)', color: '#fff', padding: '12px 20px', borderRadius: '8px', fontWeight: 600 }}>
             {toast.message}
           </div>
         )}
@@ -448,8 +455,8 @@ export default function App() {
           top: '20px',
           right: '20px',
           zIndex: 9999,
-          background: toast.type === 'error' ? '#ef4444' : '#00A651',
-          color: '#ffffff',
+          background: toast.type === 'error' ? 'var(--accent-rose)' : 'var(--accent)',
+          color: 'var(--text-primary)',
           padding: '12px 20px',
           borderRadius: '8px',
           boxShadow: '0 10px 15px -3px rgba(0,0,0,0.4)',
@@ -493,63 +500,63 @@ export default function App() {
             className={`nav-item ${currentTab === 'chargers' ? 'active' : ''}`}
             onClick={() => setCurrentTab('chargers')}
           >
-            <Zap size={18} /> Live Chargers
+            <Zap size={18} /> Chargers
           </button>
           <button
             className={`nav-item ${currentTab === 'ocpp-config' ? 'active' : ''}`}
             onClick={() => setCurrentTab('ocpp-config')}
           >
-            <Cpu size={18} /> Hardware Integration (OCPP)
+            <Cpu size={18} /> Hardware (OCPP)
           </button>
           <button
             className={`nav-item ${currentTab === 'residents' ? 'active' : ''}`}
             onClick={() => setCurrentTab('residents')}
           >
-            <Users size={18} /> Residents & Approvals
+            <Users size={18} /> Residents
           </button>
           <button
             className={`nav-item ${currentTab === 'bookings' ? 'active' : ''}`}
             onClick={() => setCurrentTab('bookings')}
           >
-            <Calendar size={18} /> Slot Bookings
+            <Calendar size={18} /> Bookings
           </button>
           <button
             className={`nav-item ${currentTab === 'sessions' ? 'active' : ''}`}
             onClick={() => setCurrentTab('sessions')}
           >
-            <History size={18} /> Charging Sessions
+            <History size={18} /> Sessions
           </button>
 
-          <div className="nav-section-title">Finance & Policies</div>
+          <div className="nav-section-title">Finance</div>
           <button
             className={`nav-item ${currentTab === 'payments' ? 'active' : ''}`}
             onClick={() => setCurrentTab('payments')}
           >
-            <CreditCard size={18} /> Financial Transactions
+            <CreditCard size={18} /> Payments
           </button>
           <button
             className={`nav-item ${currentTab === 'subscription' ? 'active' : ''}`}
             onClick={() => setCurrentTab('subscription')}
           >
-            <Shield size={18} /> Subscriptions & Plans
+            <Shield size={18} /> Plan
           </button>
           <button
             className={`nav-item ${currentTab === 'tariffs' ? 'active' : ''}`}
             onClick={() => setCurrentTab('tariffs')}
           >
-            <DollarSign size={18} /> Tariffs & Pricing
+            <DollarSign size={18} /> Tariffs
           </button>
           <button
             className={`nav-item ${currentTab === 'reports' ? 'active' : ''}`}
             onClick={() => setCurrentTab('reports')}
           >
-            <BarChart3 size={18} /> Analytics & Reports
+            <BarChart3 size={18} /> Reports
           </button>
           <button
             className={`nav-item ${currentTab === 'logs' ? 'active' : ''}`}
             onClick={() => setCurrentTab('logs')}
           >
-            <Terminal size={18} /> Integration Health Logs
+            <Terminal size={18} /> Integration logs
           </button>
           <button
             className={`nav-item ${currentTab === 'announcements' ? 'active' : ''}`}
@@ -560,18 +567,18 @@ export default function App() {
 
           {isSuperAdmin && (
             <>
-              <div className="nav-section-title">Platform Admin</div>
+              <div className="nav-section-title">Platform</div>
               <button
                 className={`nav-item ${currentTab === 'platform-subscriptions' ? 'active' : ''}`}
                 onClick={() => setCurrentTab('platform-subscriptions')}
               >
-                <Shield size={18} /> Platform Subscriptions (MRR)
+                <Shield size={18} /> Subscriptions
               </button>
               <button
                 className={`nav-item ${currentTab === 'societies' ? 'active' : ''}`}
                 onClick={() => setCurrentTab('societies')}
               >
-                <Building size={18} /> Societies Directory
+                <Building size={18} /> Societies
               </button>
             </>
           )}
@@ -584,11 +591,11 @@ export default function App() {
                 {currentUser?.name?.charAt(0) || 'A'}
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f8fafc', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                   {currentUser?.name || 'Administrator'}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#00A651', fontWeight: 600 }}>
-                  {isSuperAdmin ? 'Super Admin' : `${subscriptionData?.subscription?.plan_name?.split(' ')[0] || 'Pro'} Society Admin`}
+                <div style={{ fontSize: '0.72rem', color: 'var(--accent)', fontWeight: 600 }}>
+                  {isSuperAdmin ? 'Super admin' : 'Society admin'}
                 </div>
               </div>
             </div>
@@ -596,7 +603,7 @@ export default function App() {
               onClick={handleLogout}
               title="Sign out"
               aria-label="Sign out"
-              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
             >
               <LogOut size={16} />
             </button>
@@ -609,13 +616,13 @@ export default function App() {
         {/* Top Header */}
         <header className="top-header">
           <div className="top-header-left">
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', textTransform: 'capitalize' }}>
-              {currentTab.replace('-', ' ')}
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--text-primary)', }}>
+              {TAB_TITLES[currentTab] || currentTab}
             </h2>
             {isSuperAdmin && (
               <span style={{
-                background: 'rgba(0, 102, 204, 0.2)',
-                color: '#38bdf8',
+                background: 'rgba(237, 237, 237, 0.06)',
+                color: 'var(--text-primary)',
                 fontSize: '0.75rem',
                 padding: '3px 8px',
                 borderRadius: '6px',
@@ -624,7 +631,7 @@ export default function App() {
                 alignItems: 'center',
                 gap: '4px'
               }}>
-                <Shield size={12} /> Super Admin View
+                Super admin
               </span>
             )}
             <span className="powered-by-badge" style={{ margin: 0 }}>
@@ -636,7 +643,7 @@ export default function App() {
             {/* Society Selector */}
             {societiesList.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Building size={16} color="#94a3b8" />
+                <Building size={16} style={{ color: 'var(--text-muted)' }} />
                 <select
                   className="society-selector"
                   value={selectedSocietyId || ''}
@@ -674,7 +681,7 @@ export default function App() {
           <div className="demo-banner">
             <div className="demo-title">
               <Zap size={16} />
-              <span>EcoVoltX Quick Role & Subscription Switcher:</span>
+              <span>Demo accounts</span>
             </div>
             <div className="demo-actions">
               {demoAccounts.map(acc => (
@@ -691,9 +698,9 @@ export default function App() {
                 target="_blank"
                 rel="noreferrer"
                 className="demo-btn"
-                style={{ background: 'rgba(0, 166, 81, 0.15)', color: '#00c761', borderColor: 'rgba(0, 166, 81, 0.4)' }}
+
               >
-                📱 Open Resident Mobile App ↗
+                Resident app ↗
               </a>
             </div>
           </div>
@@ -704,8 +711,8 @@ export default function App() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc' }}>Society SaaS Subscription</h3>
-                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                  <h3 style={{ fontSize: '1.35rem', fontWeight: 500, color: 'var(--text-primary)' }}>Society SaaS Subscription</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                     Manage your EcoVoltX cloud platform license, charger capacity quotas, and monthly billing
                   </p>
                 </div>
@@ -713,18 +720,18 @@ export default function App() {
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  background: '#0b1120',
+                  background: 'var(--bg-input)',
                   padding: '4px',
                   borderRadius: '10px',
-                  border: '1px solid #1e293b'
+                  border: '1px solid var(--border-color)'
                 }}>
                   <button
                     style={{
                       padding: '6px 14px',
                       borderRadius: '8px',
                       border: 'none',
-                      background: billingCycle === 'monthly' ? '#00A651' : 'transparent',
-                      color: billingCycle === 'monthly' ? '#ffffff' : '#94a3b8',
+                      background: billingCycle === 'monthly' ? 'var(--accent)' : 'transparent',
+                      color: billingCycle === 'monthly' ? 'var(--text-primary)' : 'var(--text-secondary)',
                       fontWeight: 600,
                       fontSize: '0.82rem',
                       cursor: 'pointer',
@@ -739,8 +746,8 @@ export default function App() {
                       padding: '6px 14px',
                       borderRadius: '8px',
                       border: 'none',
-                      background: billingCycle === 'annual' ? '#00A651' : 'transparent',
-                      color: billingCycle === 'annual' ? '#ffffff' : '#94a3b8',
+                      background: billingCycle === 'annual' ? 'var(--accent)' : 'transparent',
+                      color: billingCycle === 'annual' ? 'var(--text-primary)' : 'var(--text-secondary)',
                       fontWeight: 600,
                       fontSize: '0.82rem',
                       cursor: 'pointer',
@@ -757,7 +764,7 @@ export default function App() {
                       padding: '2px 6px',
                       borderRadius: '4px',
                       fontSize: '0.68rem',
-                      fontWeight: 700
+                      fontWeight: 500
                     }}>SAVE 20%</span>
                   </button>
                 </div>
@@ -765,7 +772,7 @@ export default function App() {
 
               {/* Active Subscription Banner & Resource Quotas */}
               <div style={{
-                background: 'linear-gradient(135deg, rgba(0, 166, 81, 0.12) 0%, rgba(0, 102, 204, 0.12) 100%)',
+                background: 'var(--bg-card)',
                 border: '1px solid rgba(0, 166, 81, 0.3)',
                 borderRadius: '14px',
                 padding: '24px',
@@ -776,19 +783,19 @@ export default function App() {
               }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', fontWeight: 600 }}>Current Subscription</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Current Subscription</span>
                     <span className="badge badge-available">
                       <span className="status-dot available" />
                       {subscriptionData?.subscription?.status || 'Active'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc', marginBottom: '6px' }}>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}>
                     {subscriptionData?.subscription?.plan_name || 'Pro Society Plan'}
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-                    Next renewal on: <strong style={{ color: '#f8fafc' }}>{new Date(subscriptionData?.subscription?.renews_at || Date.now() + 30 * 86400000).toLocaleDateString()}</strong>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    Next renewal on: <strong style={{ color: 'var(--text-primary)' }}>{new Date(subscriptionData?.subscription?.renews_at || Date.now() + 30 * 86400000).toLocaleDateString()}</strong>
                   </div>
-                  <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '4px' }}>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                     Billing Cycle: {subscriptionData?.subscription?.billing_cycle?.toUpperCase() || 'MONTHLY'} • Auto-Renew Active
                   </div>
                 </div>
@@ -796,8 +803,8 @@ export default function App() {
                 {/* Quota meters */}
                 <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '16px 20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
-                    <span style={{ color: '#94a3b8' }}>Charger Capacity Quota</span>
-                    <span style={{ fontWeight: 700, color: '#38bdf8' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Charger Capacity Quota</span>
+                    <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
                       {subscriptionData?.usage?.active_chargers || chargers.length} / {subscriptionData?.usage?.max_chargers || 10} Chargers
                     </span>
                   </div>
@@ -809,16 +816,16 @@ export default function App() {
                       }}
                     />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b', marginTop: '12px' }}>
-                    <span>Registered Residents: <strong style={{ color: '#f8fafc' }}>{subscriptionData?.usage?.approved_residents || residents.length}</strong></span>
-                    <span>Smart Load: <strong style={{ color: '#00A651' }}>Enabled</strong></span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '12px' }}>
+                    <span>Registered Residents: <strong style={{ color: 'var(--text-primary)' }}>{subscriptionData?.usage?.approved_residents || residents.length}</strong></span>
+                    <span>Smart Load: <strong style={{ color: 'var(--accent)' }}>Enabled</strong></span>
                   </div>
                 </div>
               </div>
 
               {/* Plan Comparison Matrix */}
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={18} color="#00A651" /> Available EcoVoltX Subscription Plans
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Plans
               </h4>
 
               <div className="pricing-grid">
@@ -871,7 +878,7 @@ export default function App() {
                         <div className="plan-desc">{plan.description}</div>
 
                         <div className="plan-price-box">
-                          <span style={{ fontSize: '1.1rem', color: '#94a3b8', fontWeight: 600 }}>₹</span>
+                          <span style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', fontWeight: 600 }}>₹</span>
                           <span className="plan-price">{price.toLocaleString()}</span>
                           <span className="plan-period">/ {billingCycle === 'annual' ? 'year' : 'month'}</span>
                         </div>
@@ -895,8 +902,8 @@ export default function App() {
                           className="btn btn-primary"
                           style={{
                             width: '100%',
-                            background: plan.popular ? '#0066CC' : '#00A651',
-                            borderColor: plan.popular ? '#0066CC' : '#00A651'
+                            background: plan.popular ? 'var(--text-secondary)' : 'var(--accent)',
+                            borderColor: plan.popular ? 'var(--text-secondary)' : 'var(--accent)'
                           }}
                           onClick={() => {
                             setSelectedPlanForUpgrade(plan);
@@ -915,7 +922,7 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <History size={20} color="#0066CC" /> Subscription Billing History & Receipts
+                    <History size={16} /> Plan invoices
                   </div>
                   <button className="btn btn-outline btn-sm" onClick={() => exportCSV(subscriptionData?.invoices || [], 'subscription_invoices')}>
                     <Download size={14} /> Export Receipts
@@ -938,11 +945,11 @@ export default function App() {
                     <tbody>
                       {(subscriptionData?.invoices || []).map((inv) => (
                         <tr key={inv.id}>
-                          <td style={{ fontFamily: 'monospace', fontWeight: 600, color: '#38bdf8' }}>{inv.invoice_number}</td>
-                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{inv.plan_name}</td>
-                          <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#00A651' }}>₹{parseFloat(inv.amount).toLocaleString()}</td>
+                          <td style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text-primary)' }}>{inv.invoice_number}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{inv.plan_name}</td>
+                          <td style={{ fontFamily: 'monospace', fontWeight: 500, color: 'var(--accent)' }}>₹{parseFloat(inv.amount).toLocaleString()}</td>
                           <td>
-                            <span style={{ background: '#1e293b', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                            <span style={{ background: 'var(--border-color)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>
                               {inv.billing_cycle}
                             </span>
                           </td>
@@ -967,7 +974,7 @@ export default function App() {
                       ))}
                       {(!subscriptionData?.invoices || subscriptionData.invoices.length === 0) && (
                         <tr>
-                          <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                          <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                             No past invoices recorded.
                           </td>
                         </tr>
@@ -983,8 +990,8 @@ export default function App() {
           {currentTab === 'platform-subscriptions' && isSuperAdmin && (
             <div>
               <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc' }}>Platform Subscription Revenue</h3>
-                <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 500, color: 'var(--text-primary)' }}>Platform Subscription Revenue</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                   Track multi-society recurring SaaS licenses, MRR, ARR, and society subscription health powered by EcoNelssol
                 </p>
               </div>
@@ -993,54 +1000,54 @@ export default function App() {
               <div className="metrics-grid">
                 <div className="metric-card">
                   <div className="metric-card-top">
-                    <span className="metric-title">Monthly Recurring Revenue (MRR)</span>
-                    <div className="metric-icon-box" style={{ background: 'rgba(0, 166, 81, 0.15)', color: '#00A651' }}>
+                    <span className="metric-title">Monthly recurring revenue</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--accent)' }}>
                       <DollarSign size={18} />
                     </div>
                   </div>
-                  <div className="metric-value" style={{ color: '#00A651' }}>
-                    ₹{(platformSubscriptions?.metrics?.total_mrr || 6998).toLocaleString()}
+                  <div className="metric-value" style={{ color: 'var(--accent)' }}>
+                    ₹{(platformSubscriptions?.metrics?.total_mrr || 0).toLocaleString('en-IN')}
                   </div>
-                  <div className="metric-subtitle">Across active society subscriptions</div>
+                  <div className="metric-subtitle">Active society subscriptions</div>
                 </div>
 
                 <div className="metric-card">
                   <div className="metric-card-top">
-                    <span className="metric-title">Annual Recurring Revenue (ARR)</span>
-                    <div className="metric-icon-box" style={{ background: 'rgba(0, 102, 204, 0.15)', color: '#0066CC' }}>
+                    <span className="metric-title">Annual recurring revenue</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--text-secondary)' }}>
                       <BarChart3 size={18} />
                     </div>
                   </div>
-                  <div className="metric-value" style={{ color: '#38bdf8' }}>
-                    ₹{(platformSubscriptions?.metrics?.total_arr || 83976).toLocaleString()}
+                  <div className="metric-value" style={{ color: 'var(--text-primary)' }}>
+                    ₹{(platformSubscriptions?.metrics?.total_arr || 0).toLocaleString('en-IN')}
                   </div>
-                  <div className="metric-subtitle">Projected annual platform revenue</div>
+                  <div className="metric-subtitle">Monthly revenue × 12</div>
                 </div>
 
                 <div className="metric-card">
                   <div className="metric-card-top">
-                    <span className="metric-title">Active Subscribed Societies</span>
-                    <div className="metric-icon-box" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' }}>
+                    <span className="metric-title">Subscribed societies</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--text-secondary)' }}>
                       <Building size={18} />
                     </div>
                   </div>
                   <div className="metric-value">
                     {platformSubscriptions?.metrics?.active_subscriptions || societiesList.length}
                   </div>
-                  <div className="metric-subtitle">100% renewal retention rate</div>
+                  <div className="metric-subtitle">With an active plan</div>
                 </div>
 
                 <div className="metric-card">
                   <div className="metric-card-top">
-                    <span className="metric-title">Platform Operator</span>
+                    <span className="metric-title">Platform operator</span>
                     <div className="metric-icon-box" style={{ background: 'rgba(255, 255, 255, 0.08)' }}>
                       <Zap size={18} color="#00A651" />
                     </div>
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '8px' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 500, marginTop: '8px' }}>
                     <span className="econelssol-brand"><span className="eco">Eco</span><span className="nelssol">Nelssol</span></span>
                   </div>
-                  <div className="metric-subtitle">EcoVoltX Cloud Infrastructure</div>
+                  <div className="metric-subtitle">Runs EcoVoltX</div>
                 </div>
               </div>
 
@@ -1048,7 +1055,7 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <CreditCard size={20} color="#00A651" /> Society Subscription Directory
+                    <CreditCard size={16} /> Society subscriptions
                   </div>
                   <button className="btn btn-outline btn-sm" onClick={() => exportCSV(platformSubscriptions?.societies || [], 'platform_subscriptions')}>
                     <Download size={14} /> Export Subscriptions
@@ -1073,25 +1080,25 @@ export default function App() {
                     <tbody>
                       {(platformSubscriptions?.societies || societiesList).map((soc) => (
                         <tr key={soc.id}>
-                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{soc.name}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{soc.name}</td>
                           <td>
-                            <span style={{ background: '#1e293b', padding: '3px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700, color: '#00A651' }}>
+                            <span style={{ background: 'var(--border-color)', padding: '3px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 500, color: 'var(--accent)' }}>
                               {soc.code}
                             </span>
                           </td>
                           <td>{soc.city || 'Bengaluru'}</td>
                           <td>
                             <span className="badge" style={{
-                              background: soc.plan_id === 'enterprise' ? 'rgba(139, 92, 246, 0.2)' : soc.plan_id === 'starter' ? 'rgba(100, 116, 139, 0.2)' : 'rgba(0, 166, 81, 0.15)',
-                              color: soc.plan_id === 'enterprise' ? '#a78bfa' : soc.plan_id === 'starter' ? '#94a3b8' : '#34d399',
+                              background: soc.plan_id === 'enterprise' ? 'rgba(237, 237, 237, 0.06)' : soc.plan_id === 'starter' ? 'rgba(100, 116, 139, 0.2)' : 'rgba(237, 237, 237, 0.06)',
+                              color: soc.plan_id === 'enterprise' ? 'var(--text-secondary)' : soc.plan_id === 'starter' ? 'var(--text-secondary)' : 'var(--accent-emerald-light)',
                             }}>
                               {soc.plan_name || (soc.id === 1 ? 'Pro Society' : 'Starter Community')}
                             </span>
                           </td>
-                          <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#f8fafc' }}>
+                          <td style={{ fontFamily: 'monospace', fontWeight: 500, color: 'var(--text-primary)' }}>
                             ₹{soc.price_monthly ? soc.price_monthly.toLocaleString() : (soc.id === 1 ? '4,999' : '1,999')}
                           </td>
-                          <td style={{ color: '#38bdf8', fontWeight: 600 }}>
+                          <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
                             {soc.chargers_count ?? 3} / {soc.charger_limit ?? (soc.id === 1 ? 10 : 3)}
                           </td>
                           <td style={{ fontSize: '0.82rem' }}>
@@ -1131,64 +1138,64 @@ export default function App() {
               <div className="metrics-grid">
                 <div className="metric-card">
                   <div className="metric-card-top">
-                    <span className="metric-title">Available Chargers</span>
-                    <div className="metric-icon-box" style={{ background: 'rgba(0, 166, 81, 0.15)', color: '#00A651' }}>
+                    <span className="metric-title">Chargers free now</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--accent)' }}>
                       <Zap size={18} />
                     </div>
                   </div>
                   <div className="metric-value">
                     {dashboardData?.overview?.available_chargers ?? chargers.filter(c => c.status === 'available').length}
-                    <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: 500 }}>
-                      /{chargers.length || 0}
+                    <span style={{ fontSize: '16px', color: 'var(--text-muted)', fontWeight: 400 }}>
+                      {' '}of {chargers.length || 0}
                     </span>
                   </div>
                   <div className="metric-subtitle">
-                    {chargers.filter(c => c.status === 'charging').length} actively charging
+                    {chargers.filter(c => c.status === 'charging').length} charging now
                   </div>
                 </div>
 
                 <div className="metric-card">
                   <div className="metric-card-top">
-                    <span className="metric-title">Today's Consumption</span>
-                    <div className="metric-icon-box" style={{ background: 'rgba(0, 102, 204, 0.15)', color: '#0066CC' }}>
+                    <span className="metric-title">Energy today</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--text-secondary)' }}>
                       <BatteryCharging size={18} />
                     </div>
                   </div>
                   <div className="metric-value">
-                    {dashboardData?.today?.energy_kwh ?? 0} <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>kWh</span>
+                    {Number(dashboardData?.today?.energy_kwh ?? 0).toFixed(1)} <span style={{ fontSize: '16px', color: 'var(--text-muted)' }}>kWh</span>
                   </div>
                   <div className="metric-subtitle">
-                    {dashboardData?.today?.sessions ?? 0} completed charges today
+                    {dashboardData?.today?.sessions ?? 0} sessions completed
                   </div>
                 </div>
 
                 <div className="metric-card">
                   <div className="metric-card-top">
-                    <span className="metric-title">Today's Revenue</span>
-                    <div className="metric-icon-box" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
+                    <span className="metric-title">Revenue today</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--accent-amber)' }}>
                       <DollarSign size={18} />
                     </div>
                   </div>
                   <div className="metric-value">
-                    ₹{dashboardData?.today?.revenue ?? 0}
+                    ₹{Number(dashboardData?.today?.revenue ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <div className="metric-subtitle">
-                    Monthly total: ₹{dashboardData?.monthly?.revenue ?? 0}
+                    ₹{Number(dashboardData?.monthly?.revenue ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} this month
                   </div>
                 </div>
 
                 <div className="metric-card">
                   <div className="metric-card-top">
-                    <span className="metric-title">Society SaaS Plan</span>
-                    <div className="metric-icon-box" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' }}>
+                    <span className="metric-title">Plan</span>
+                    <div className="metric-icon-box" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--text-secondary)' }}>
                       <CreditCard size={18} />
                     </div>
                   </div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc', marginTop: '6px' }}>
-                    {subscriptionData?.subscription?.plan_name?.split(' ')[0] || 'Pro'} Tier
+                  <div className="metric-value">
+                    {subscriptionData?.subscription?.plan_name?.split(' (')[0] || '—'}
                   </div>
                   <div className="metric-subtitle">
-                    Limit: {subscriptionData?.usage?.max_chargers || 10} chargers • <span style={{ color: '#00A651', fontWeight: 600 }}>Active</span>
+                    Up to {subscriptionData?.usage?.max_chargers ?? '—'} chargers
                   </div>
                 </div>
               </div>
@@ -1196,8 +1203,8 @@ export default function App() {
               {/* Pending Approvals Alert Banner */}
               {residents.filter(r => r.status === 'pending').length > 0 && (
                 <div style={{
-                  background: 'rgba(245, 158, 11, 0.1)',
-                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  background: 'rgba(237, 237, 237, 0.06)',
+                  border: '1px solid rgba(237, 237, 237, 0.06)',
                   borderRadius: '10px',
                   padding: '16px 20px',
                   marginBottom: '24px',
@@ -1206,13 +1213,13 @@ export default function App() {
                   justifyContent: 'space-between',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <UserCheck size={24} color="#f59e0b" />
+                    <span className="status-dot charging" />
                     <div>
-                      <div style={{ fontWeight: 600, color: '#f59e0b', fontSize: '0.95rem' }}>
-                        {residents.filter(r => r.status === 'pending').length} Resident Approval Request(s) Pending
+                      <div style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: '14px' }}>
+                        {residents.filter(r => r.status === 'pending').length} {residents.filter(r => r.status === 'pending').length === 1 ? 'resident is' : 'residents are'} waiting for approval
                       </div>
-                      <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
-                        New residents have joined your society code and are waiting to access chargers.
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                        They joined with your society code and can charge once approved
                       </div>
                     </div>
                   </div>
@@ -1220,7 +1227,7 @@ export default function App() {
                     className="btn btn-primary btn-sm"
                     onClick={() => setCurrentTab('residents')}
                   >
-                    Review Now
+                    Review
                   </button>
                 </div>
               )}
@@ -1229,10 +1236,10 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <Zap size={20} color="#00A651" /> Live Charger Station Telemetry
+                    Chargers
                   </div>
                   <button className="btn btn-primary btn-sm" onClick={() => setShowAddChargerModal(true)}>
-                    <Plus size={14} /> Add Charger
+                    <Plus size={16} /> Add charger
                   </button>
                 </div>
 
@@ -1241,11 +1248,11 @@ export default function App() {
                     <div key={charger.id} className="charger-admin-card">
                       <div className="charger-header">
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: '1rem', color: '#f8fafc' }}>
-                            {charger.charger_number} — {charger.name}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500, fontSize: '14px', color: 'var(--text-primary)' }}>
+                            <span className="bay">{charger.charger_number}</span> {charger.name}
                           </div>
-                          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                            Slot: {charger.parking_slot || 'Ground Bay'}
+                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            {charger.parking_location || charger.location_description}
                           </div>
                         </div>
                         <span className={`badge badge-${charger.status}`}>
@@ -1256,20 +1263,20 @@ export default function App() {
 
                       <div className="charger-specs">
                         <div className="spec-item">
-                          <span className="spec-label">Capacity</span>
-                          <span className="spec-val">{charger.power_output_kw} kW</span>
+                          <span className="spec-label">Power</span>
+                          <span className="spec-val">{charger.power_rating_kw ?? charger.power_output_kw} kW</span>
                         </div>
                         <div className="spec-item">
                           <span className="spec-label">Connector</span>
                           <span className="spec-val">{charger.connector_type}</span>
                         </div>
                         <div className="spec-item">
-                          <span className="spec-label">Current Rate</span>
+                          <span className="spec-label">Rate</span>
                           <span className="spec-val">₹{charger.price_per_kwh}/kWh</span>
                         </div>
                         <div className="spec-item">
-                          <span className="spec-label">Type</span>
-                          <span className="spec-val">{charger.charging_type?.toUpperCase()}</span>
+                          <span className="spec-label">Mode</span>
+                          <span className="spec-val">{charger.integration_mode === 'PRODUCTION' ? 'Hardware' : 'Simulated'}</span>
                         </div>
                       </div>
 
@@ -1280,7 +1287,7 @@ export default function App() {
                             style={{ flex: 1 }}
                             onClick={() => handleChargerStatusChange(charger.id, 'offline')}
                           >
-                            Set Offline
+                            Set offline
                           </button>
                         )}
                         {charger.status === 'offline' && (
@@ -1289,7 +1296,7 @@ export default function App() {
                             style={{ flex: 1 }}
                             onClick={() => handleChargerStatusChange(charger.id, 'available')}
                           >
-                            Set Online
+                            Set online
                           </button>
                         )}
                         {charger.status === 'faulted' && (
@@ -1298,7 +1305,7 @@ export default function App() {
                             style={{ flex: 1 }}
                             onClick={() => handleChargerStatusChange(charger.id, 'available')}
                           >
-                            Reset Fault
+                            Reset fault
                           </button>
                         )}
                         <button
@@ -1309,7 +1316,7 @@ export default function App() {
                             handleChargerStatusChange(charger.id, newStatus);
                           }}
                         >
-                          {charger.status === 'maintenance' ? 'End Maint.' : 'Maint.'}
+                          {charger.status === 'maintenance' ? 'End maintenance' : 'Maintenance'}
                         </button>
                       </div>
                     </div>
@@ -1321,7 +1328,7 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <History size={20} color="#0066CC" /> Recent Society Charging Logs
+                    <History size={16} /> Recent sessions
                   </div>
                   <button className="btn btn-outline btn-sm" onClick={() => exportCSV(sessions, 'charging_sessions')}>
                     <Download size={14} /> Export CSV
@@ -1345,7 +1352,7 @@ export default function App() {
                       {sessions.slice(0, 8).map(sess => (
                         <tr key={sess.id}>
                           <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>#{sess.id}</td>
-                          <td style={{ color: '#f8fafc', fontWeight: 500 }}>{sess.user_name || `User #${sess.user_id}`}</td>
+                          <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{sess.user_name || `User #${sess.user_id}`}</td>
                           <td>{sess.charger_number || `Charger #${sess.charger_id}`}</td>
                           <td>
                             <span className={`badge badge-${sess.status}`}>
@@ -1353,14 +1360,14 @@ export default function App() {
                               {sess.status}
                             </span>
                           </td>
-                          <td style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{sess.energy_kwh} kWh</td>
-                          <td style={{ fontFamily: 'monospace', color: '#00A651', fontWeight: 600 }}>₹{sess.cost}</td>
+                          <td style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{sess.energy_kwh} kWh</td>
+                          <td style={{ fontFamily: 'monospace', color: 'var(--accent)', fontWeight: 600 }}>₹{sess.cost}</td>
                           <td style={{ fontSize: '0.8rem' }}>{new Date(sess.start_time).toLocaleString()}</td>
                         </tr>
                       ))}
                       {sessions.length === 0 && (
                         <tr>
-                          <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                          <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
                             No sessions recorded yet.
                           </td>
                         </tr>
@@ -1378,8 +1385,8 @@ export default function App() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc' }}>Society Charging Stations & Hardware</h3>
-                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Configure OCPP hardware, power limits, maintenance state, and live diagnostics</p>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--text-primary)' }}>Society Charging Stations & Hardware</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Configure OCPP hardware, power limits, maintenance state, and live diagnostics</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button className="btn btn-outline" onClick={() => setCurrentTab('ocpp-config')}>
@@ -1404,7 +1411,7 @@ export default function App() {
                       <div className="charger-header">
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#f8fafc' }}>
+                            <div style={{ fontWeight: 500, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
                               {charger.charger_number}
                             </div>
                             {isProduction ? (
@@ -1412,9 +1419,9 @@ export default function App() {
                                 fontSize: '0.65rem',
                                 padding: '2px 6px',
                                 borderRadius: '4px',
-                                background: 'rgba(0, 166, 81, 0.15)',
-                                color: '#00A651',
-                                fontWeight: 700,
+                                background: 'rgba(237, 237, 237, 0.06)',
+                                color: 'var(--accent)',
+                                fontWeight: 500,
                               }}>
                                 PRODUCTION (OCPP)
                               </span>
@@ -1424,15 +1431,15 @@ export default function App() {
                                 padding: '2px 6px',
                                 borderRadius: '4px',
                                 background: 'rgba(234, 179, 8, 0.15)',
-                                color: '#facc15',
-                                fontWeight: 700,
+                                color: 'var(--accent-amber)',
+                                fontWeight: 500,
                               }}>
                                 DEMO (SIMULATED)
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                            {charger.name} · <span style={{ color: '#64748b' }}>{charger.vendor || charger.manufacturer || 'EcoVoltX'} ({charger.model || 'Smart-AC'})</span>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            {charger.name} · <span style={{ color: 'var(--text-muted)' }}>{charger.vendor || charger.manufacturer || 'EcoVoltX'} ({charger.model || 'Smart-AC'})</span>
                           </div>
                         </div>
 
@@ -1441,7 +1448,7 @@ export default function App() {
                             <span className={`status-dot ${charger.status}`} />
                             {charger.status}
                           </span>
-                          <div style={{ fontSize: '0.7rem', color: isOcppOnline ? '#00A651' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
+                          <div style={{ fontSize: '0.7rem', color: isOcppOnline ? 'var(--accent)' : 'var(--text-muted)', marginTop: '4px', fontWeight: 600 }}>
                             {isOcppOnline ? '● WebSocket Online' : '○ Offline'}
                           </div>
                         </div>
@@ -1477,7 +1484,7 @@ export default function App() {
                               setShowDiagnosticsModal(true);
                             }}
                           >
-                            <Activity size={14} color="#38bdf8" /> Diagnostics
+                            <Activity size={14} /> Diagnostics
                           </button>
                           <button
                             className="btn btn-outline btn-sm"
@@ -1553,8 +1560,8 @@ export default function App() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc' }}>Resident Directory & Access Control</h3>
-                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Approve new join requests, manage flat assignments, and monitor EV owners</p>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--text-primary)' }}>Resident Directory & Access Control</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Approve new join requests, manage flat assignments, and monitor EV owners</p>
                 </div>
                 <button className="btn btn-outline" onClick={() => exportCSV(residents, 'society_residents')}>
                   <Download size={16} /> Export Residents CSV
@@ -1565,9 +1572,9 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <UserCheck size={20} color="#f59e0b" /> Pending Society Join Requests
+                    <UserCheck size={16} /> Waiting for approval
                   </div>
-                  <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' }}>
+                  <span className="badge" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--accent-amber)' }}>
                     {residents.filter(r => r.status === 'pending').length} Pending
                   </span>
                 </div>
@@ -1587,11 +1594,11 @@ export default function App() {
                     <tbody>
                       {residents.filter(r => r.status === 'pending').map(resident => (
                         <tr key={resident.user_id}>
-                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{resident.name}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{resident.name}</td>
                           <td>{resident.email}</td>
                           <td>{resident.phone || 'N/A'}</td>
                           <td>
-                            <span style={{ background: '#1e293b', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                            <span style={{ background: 'var(--border-color)', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
                               {resident.flat_number || 'Not set'}
                             </span>
                           </td>
@@ -1616,7 +1623,7 @@ export default function App() {
                       ))}
                       {residents.filter(r => r.status === 'pending').length === 0 && (
                         <tr>
-                          <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                          <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                             No pending join requests! All residents are approved.
                           </td>
                         </tr>
@@ -1630,7 +1637,7 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <Users size={20} color="#00A651" /> Approved Residents ({residents.filter(r => r.status === 'approved').length})
+                    <Users size={16} /> Approved residents ({residents.filter(r => r.status === 'approved').length})
                   </div>
                 </div>
 
@@ -1649,13 +1656,13 @@ export default function App() {
                     <tbody>
                       {residents.filter(r => r.status === 'approved').map(res => (
                         <tr key={res.user_id}>
-                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{res.name}</td>
-                          <td style={{ fontWeight: 600, color: '#38bdf8' }}>{res.flat_number || 'A-101'}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{res.name}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{res.flat_number || 'A-101'}</td>
                           <td>{res.email}</td>
                           <td>
                             <span className="badge" style={{
-                              background: res.role === 'admin' ? 'rgba(0, 102, 204, 0.2)' : 'rgba(0, 166, 81, 0.15)',
-                              color: res.role === 'admin' ? '#38bdf8' : '#34d399',
+                              background: res.role === 'admin' ? 'rgba(237, 237, 237, 0.06)' : 'rgba(237, 237, 237, 0.06)',
+                              color: res.role === 'admin' ? 'var(--text-primary)' : 'var(--accent-emerald-light)',
                             }}>
                               {res.role}
                             </span>
@@ -1691,7 +1698,7 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <Calendar size={20} color="#0066CC" /> Resident Charger Reservations
+                    <Calendar size={16} /> Bookings
                   </div>
                   <button className="btn btn-outline btn-sm" onClick={() => exportCSV(bookings, 'bookings_schedule')}>
                     <Download size={14} /> Export Bookings CSV
@@ -1714,9 +1721,9 @@ export default function App() {
                       {bookings.map(b => (
                         <tr key={b.id}>
                           <td style={{ fontFamily: 'monospace' }}>#{b.id}</td>
-                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{b.user_name || `User #${b.user_id}`}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{b.user_name || `User #${b.user_id}`}</td>
                           <td>{b.charger_number}</td>
-                          <td style={{ color: '#38bdf8' }}>
+                          <td style={{ color: 'var(--text-primary)' }}>
                             {new Date(b.start_time).toLocaleString()} – {new Date(b.end_time).toLocaleTimeString()}
                           </td>
                           <td>
@@ -1730,7 +1737,7 @@ export default function App() {
                       ))}
                       {bookings.length === 0 && (
                         <tr>
-                          <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                          <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
                             No bookings scheduled.
                           </td>
                         </tr>
@@ -1748,7 +1755,7 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <History size={20} color="#0066CC" /> Complete Charging Sessions Log
+                    <History size={16} /> All sessions
                   </div>
                   <button className="btn btn-outline btn-sm" onClick={() => exportCSV(sessions, 'all_charging_sessions')}>
                     <Download size={14} /> Export CSV
@@ -1773,7 +1780,7 @@ export default function App() {
                       {sessions.map(s => (
                         <tr key={s.id}>
                           <td style={{ fontFamily: 'monospace' }}>#{s.id}</td>
-                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{s.user_name || `User #${s.user_id}`}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.user_name || `User #${s.user_id}`}</td>
                           <td>{s.charger_number || `Charger #${s.charger_id}`}</td>
                           <td>
                             <span className={`badge badge-${s.status}`}>
@@ -1781,8 +1788,8 @@ export default function App() {
                               {s.status}
                             </span>
                           </td>
-                          <td style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{s.energy_kwh} kWh</td>
-                          <td style={{ fontFamily: 'monospace', color: '#00A651', fontWeight: 600 }}>₹{s.cost}</td>
+                          <td style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{s.energy_kwh} kWh</td>
+                          <td style={{ fontFamily: 'monospace', color: 'var(--accent)', fontWeight: 600 }}>₹{s.cost}</td>
                           <td>{new Date(s.start_time).toLocaleString()}</td>
                           <td>{s.end_time ? new Date(s.end_time).toLocaleString() : 'In Progress'}</td>
                         </tr>
@@ -1800,32 +1807,32 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <DollarSign size={20} color="#00A651" /> Electricity Tariffs & Dynamic Pricing
+                    <DollarSign size={16} /> Tariffs
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '24px' }}>
-                  <div style={{ background: '#0b1120', padding: '20px', borderRadius: '10px', border: '1px solid #1e293b' }}>
-                    <h4 style={{ color: '#00A651', marginBottom: '8px', fontSize: '1rem' }}>Base Tariff Rate</h4>
-                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: '14px' }}>Flat energy rate charged to society residents per kWh consumed</p>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 700, fontFamily: 'monospace', color: '#f8fafc' }}>
-                      ₹8.00 <span style={{ fontSize: '0.9rem', color: '#64748b' }}>/ kWh</span>
+                  <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ color: 'var(--accent)', marginBottom: '8px', fontSize: '1rem' }}>Base Tariff Rate</h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '14px' }}>Flat energy rate charged to society residents per kWh consumed</p>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 500, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                      ₹8.00 <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>/ kWh</span>
                     </div>
                   </div>
 
-                  <div style={{ background: '#0b1120', padding: '20px', borderRadius: '10px', border: '1px solid #1e293b' }}>
-                    <h4 style={{ color: '#f59e0b', marginBottom: '8px', fontSize: '1rem' }}>Idle Penalty Policy</h4>
-                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: '14px' }}>Charged when an EV remains plugged in past full charge</p>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'monospace', color: '#f8fafc' }}>
-                      ₹50.00 <span style={{ fontSize: '0.85rem', color: '#64748b' }}>/ hr (after 30m grace)</span>
+                  <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ color: 'var(--accent-amber)', marginBottom: '8px', fontSize: '1rem' }}>Idle Penalty Policy</h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '14px' }}>Charged when an EV remains plugged in past full charge</p>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 500, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                      ₹50.00 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>/ hr (after 30m grace)</span>
                     </div>
                   </div>
 
-                  <div style={{ background: '#0b1120', padding: '20px', borderRadius: '10px', border: '1px solid #1e293b' }}>
-                    <h4 style={{ color: '#38bdf8', marginBottom: '8px', fontSize: '1rem' }}>Peak Hour Multiplier (TOD)</h4>
-                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: '14px' }}>TOD rate applied during high demand hours (6 PM – 10 PM)</p>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'monospace', color: '#f8fafc' }}>
-                      1.25x <span style={{ fontSize: '0.85rem', color: '#64748b' }}>(₹10.00 / kWh)</span>
+                  <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ color: 'var(--text-primary)', marginBottom: '8px', fontSize: '1rem' }}>Peak Hour Multiplier (TOD)</h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '14px' }}>TOD rate applied during high demand hours (6 PM – 10 PM)</p>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 500, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                      1.25x <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>(₹10.00 / kWh)</span>
                     </div>
                   </div>
                 </div>
@@ -1851,7 +1858,7 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <BarChart3 size={20} color="#38bdf8" /> Monthly Consumption Summary
+                    <BarChart3 size={16} /> Monthly consumption
                   </div>
                   <button className="btn btn-outline btn-sm" onClick={() => exportCSV(dashboardData?.resident_usage || [], 'monthly_report')}>
                     <Download size={14} /> Download Monthly Report
@@ -1859,28 +1866,28 @@ export default function App() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                  <div style={{ padding: '16px', background: '#0b1120', borderRadius: '8px', border: '1px solid #1e293b' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Total kWh Consumed</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace' }}>
+                  <div style={{ padding: '16px', background: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total kWh Consumed</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
                       {dashboardData?.monthly?.energy_kwh ?? 142.5} kWh
                     </div>
                   </div>
-                  <div style={{ padding: '16px', background: '#0b1120', borderRadius: '8px', border: '1px solid #1e293b' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Total Revenue</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#00A651', fontFamily: 'monospace' }}>
+                  <div style={{ padding: '16px', background: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Revenue</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 500, color: 'var(--accent)', fontFamily: 'monospace' }}>
                       ₹{dashboardData?.monthly?.revenue ?? 1140}
                     </div>
                   </div>
-                  <div style={{ padding: '16px', background: '#0b1120', borderRadius: '8px', border: '1px solid #1e293b' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Average Session Energy</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f59e0b', fontFamily: 'monospace' }}>
+                  <div style={{ padding: '16px', background: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Average Session Energy</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 500, color: 'var(--accent-amber)', fontFamily: 'monospace' }}>
                       18.4 kWh
                     </div>
                   </div>
                 </div>
 
                 <div className="card-title" style={{ marginBottom: '14px', fontSize: '0.95rem' }}>
-                  Resident-Wise Energy Consumption (Current Month)
+                  Energy by resident, this month
                 </div>
 
                 <div className="table-container">
@@ -1897,11 +1904,11 @@ export default function App() {
                     <tbody>
                       {(dashboardData?.resident_usage || []).map((ru, idx) => (
                         <tr key={idx}>
-                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{ru.name}</td>
-                          <td style={{ color: '#38bdf8' }}>{ru.flat_number || 'A-101'}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{ru.name}</td>
+                          <td style={{ color: 'var(--text-primary)' }}>{ru.flat_number || 'A-101'}</td>
                           <td>{ru.session_count}</td>
                           <td style={{ fontFamily: 'monospace' }}>{ru.total_energy} kWh</td>
-                          <td style={{ fontFamily: 'monospace', color: '#00A651', fontWeight: 600 }}>₹{ru.total_cost}</td>
+                          <td style={{ fontFamily: 'monospace', color: 'var(--accent)', fontWeight: 600 }}>₹{ru.total_cost}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1913,7 +1920,7 @@ export default function App() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">
-                    <AlertTriangle size={20} color="#f43f5e" /> Resident Reported Issues & Complaints
+                    <AlertTriangle size={16} /> Complaints
                   </div>
                 </div>
 
@@ -1934,14 +1941,14 @@ export default function App() {
                       {complaints.map(c => (
                         <tr key={c.id}>
                           <td style={{ fontFamily: 'monospace' }}>#{c.id}</td>
-                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{c.user_name}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.user_name}</td>
                           <td>{c.charger_number || 'General'}</td>
-                          <td style={{ color: '#f8fafc' }}>{c.subject}</td>
+                          <td style={{ color: 'var(--text-primary)' }}>{c.subject}</td>
                           <td style={{ fontSize: '0.82rem', maxWidth: '280px' }}>{c.description}</td>
                           <td>
                             <span className="badge" style={{
-                              background: c.status === 'resolved' ? 'rgba(0, 166, 81, 0.15)' : 'rgba(244, 63, 94, 0.15)',
-                              color: c.status === 'resolved' ? '#00A651' : '#f43f5e',
+                              background: c.status === 'resolved' ? 'rgba(237, 237, 237, 0.06)' : 'rgba(244, 63, 94, 0.15)',
+                              color: c.status === 'resolved' ? 'var(--accent)' : '#f43f5e',
                             }}>
                               {c.status}
                             </span>
@@ -1954,7 +1961,7 @@ export default function App() {
                                   const response = prompt('Enter response to resident:', 'Issue has been inspected and resolved.');
                                   if (response) {
                                     adminApi.updateComplaint(selectedSocietyId, c.id, { status: 'resolved', admin_response: response })
-                                      .then(() => { showToast('Complaint resolved!'); fetchData(); })
+                                      .then(() => { showToast('Complaint resolved'); fetchData(); })
                                       .catch(err => showToast(err.message, 'error'));
                                   }
                                 }}
@@ -1967,7 +1974,7 @@ export default function App() {
                       ))}
                       {complaints.length === 0 && (
                         <tr>
-                          <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                          <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                             No unresolved complaints reported.
                           </td>
                         </tr>
@@ -1985,7 +1992,7 @@ export default function App() {
               <div className="card" style={{ maxWidth: '640px' }}>
                 <div className="card-header">
                   <div className="card-title">
-                    <BellRing size={20} color="#00A651" /> Broadcast Society EV Notice
+                    <BellRing size={16} /> Send a notice to residents
                   </div>
                 </div>
 
@@ -2024,8 +2031,8 @@ export default function App() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc' }}>Platform Societies Management</h3>
-                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>View all residential societies connected to the EcoVoltX cloud</p>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--text-primary)' }}>Platform Societies Management</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>View all residential societies connected to the EcoVoltX cloud</p>
                 </div>
                 <button className="btn btn-primary" onClick={() => setShowAddSocietyModal(true)}>
                   <Plus size={16} /> Register New Society
@@ -2052,17 +2059,17 @@ export default function App() {
                       {societiesList.map(soc => (
                         <tr key={soc.id}>
                           <td style={{ fontFamily: 'monospace' }}>#{soc.id}</td>
-                          <td style={{ fontWeight: 600, color: '#f8fafc' }}>{soc.name}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{soc.name}</td>
                           <td>
-                            <span style={{ background: '#1e293b', padding: '3px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700, color: '#00A651' }}>
+                            <span style={{ background: 'var(--border-color)', padding: '3px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 500, color: 'var(--accent)' }}>
                               {soc.code}
                             </span>
                           </td>
                           <td>{soc.city ? `${soc.city}, ${soc.state}` : 'Bengaluru, KA'}</td>
-                          <td style={{ fontWeight: 600, color: '#38bdf8' }}>{soc.stats?.chargers ?? 3}</td>
-                          <td style={{ fontWeight: 600, color: '#a78bfa' }}>{soc.stats?.members ?? 5}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{soc.stats?.chargers ?? 3}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{soc.stats?.members ?? 5}</td>
                           <td>
-                            <span className="badge" style={{ background: 'rgba(0, 166, 81, 0.15)', color: '#00A651' }}>
+                            <span className="badge" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--accent)' }}>
                               {soc.id === 1 ? 'Pro (₹4,999)' : 'Starter (₹1,999)'}
                             </span>
                           </td>
@@ -2111,26 +2118,26 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setShowUpgradeModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CreditCard size={20} color="#00A651" /> Switch to {selectedPlanForUpgrade.name}
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 500, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CreditCard size={16} /> Switch to {selectedPlanForUpgrade.name}
               </h3>
               <button className="modal-close" onClick={() => setShowUpgradeModal(false)}>✕</button>
             </div>
 
-            <div style={{ background: '#0b1120', padding: '16px 20px', borderRadius: '10px', border: '1px solid #1e293b', marginBottom: '20px' }}>
+            <div style={{ background: 'var(--bg-input)', padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Selected Billing Cycle:</span>
-                <span style={{ fontWeight: 700, color: '#00A651', textTransform: 'uppercase', fontSize: '0.85rem' }}>{billingCycle}</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Selected Billing Cycle:</span>
+                <span style={{ fontWeight: 500, color: 'var(--accent)', fontSize: '0.85rem' }}>{billingCycle}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#f8fafc', fontWeight: 600 }}>Amount Due:</span>
-                <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'monospace', color: '#f8fafc' }}>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Amount Due:</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 500, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
                   ₹{(billingCycle === 'annual' ? selectedPlanForUpgrade.price_annual : selectedPlanForUpgrade.price_monthly).toLocaleString()}
                 </span>
               </div>
             </div>
 
-            <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginBottom: '20px', lineHeight: 1.5 }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
               By confirming, your society will immediately upgrade to the <strong>{selectedPlanForUpgrade.name}</strong> with capacity up to <strong>{selectedPlanForUpgrade.max_chargers} EV chargers</strong> and automated invoicing powered by EcoNelssol.
             </div>
 
@@ -2144,7 +2151,7 @@ export default function App() {
               </button>
               <button
                 className="btn btn-primary"
-                style={{ flex: 2, background: '#00A651', borderColor: '#00A651' }}
+                style={{ flex: 2, background: 'var(--accent)', borderColor: 'var(--accent)' }}
                 onClick={handleConfirmUpgrade}
               >
                 Confirm & Activate Subscription
@@ -2159,7 +2166,7 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setShowAddChargerModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc' }}>Add EV Charger Station</h3>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--text-primary)' }}>Add EV Charger Station</h3>
               <button className="modal-close" onClick={() => setShowAddChargerModal(false)}>✕</button>
             </div>
             <form onSubmit={handleAddCharger}>
@@ -2211,7 +2218,7 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setShowAddSocietyModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc' }}>Register New Society</h3>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--text-primary)' }}>Register New Society</h3>
               <button className="modal-close" onClick={() => setShowAddSocietyModal(false)}>✕</button>
             </div>
             <form onSubmit={handleCreateSociety}>
@@ -2254,7 +2261,7 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setShowAssignAdminModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--text-primary)' }}>
                 Assign Admin for {selectedSocietyForAdmin.name}
               </h3>
               <button className="modal-close" onClick={() => setShowAssignAdminModal(false)}>✕</button>

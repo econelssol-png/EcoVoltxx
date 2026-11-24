@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import api from '../services/api';
-import { Zap, Battery, MapPin, Clock, IndianRupee, Bell, ChevronRight, AlertCircle } from 'lucide-react';
+import { Zap, Bell, ChevronRight } from 'lucide-react';
 
 export default function Home() {
   const { user, society } = useAuth();
@@ -65,47 +65,44 @@ export default function Home() {
     }
   };
 
-  const getTimeOfDay = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
   if (loading) {
-    return <div className="page"><div className="loading-spinner"><div className="spinner" /><span className="loading-text">Loading dashboard...</span></div></div>;
+    return <div className="page"><div className="loading-spinner"><div className="spinner" /><span className="loading-text">Loading</span></div></div>;
   }
 
   const availableCount = chargers.filter(c => c.status === 'available').length;
+  const monthLabel = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const rupees = (n) => `₹${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0)}`;
 
   return (
     <div className="page">
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-        <div className="welcome-banner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#38bdf8' }}>⚡ EcoVoltX</span>
-            <span className="powered-by-tag" style={{ margin: 0, padding: '2px 8px', fontSize: '0.68rem' }}>
-              by <span className="econelssol-brand"><span className="eco">Eco</span><span className="nelssol">Nelssol</span></span>
-            </span>
-          </div>
-          <span className="greeting">{getTimeOfDay()}</span>
-          <h2>{user?.name?.split(' ')[0]}</h2>
-          <span className="society-name">{society?.name}</span>
+      {/* Header: brand, then the context as the title */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div className="brand-row">
+          <Zap size={16} className="mark" fill="currentColor" strokeWidth={0} />
+          EcoVoltX
+          <span className="powered-by-tag">
+            by <span className="econelssol-brand"><span className="eco">Eco</span><span className="nelssol">Nelssol</span></span>
+          </span>
         </div>
-        <button className="btn btn-ghost btn-icon notification-badge" onClick={() => navigate('/notifications')}>
-          <Bell size={22} />
+        <button className="btn btn-ghost btn-icon notification-badge" onClick={() => navigate('/notifications')} aria-label="Notifications">
+          <Bell size={20} strokeWidth={1.5} />
           {notifCount > 0 && <span className="badge-count">{notifCount > 9 ? '9+' : notifCount}</span>}
         </button>
       </div>
 
-      {/* Active Session Banner */}
+      <div className="welcome-banner" style={{ marginBottom: '24px' }}>
+        <span className="greeting">{monthLabel}</span>
+        <h2>{society?.name}</h2>
+        <span className="society-name">{user?.name}</span>
+      </div>
+
+      {/* Active session: the meter */}
       {activeSession && (
         <div className="session-banner">
           <div className="session-header">
-            <div>
-              <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Active Session</span>
-              <h3 style={{ fontSize: 'var(--font-md)', marginTop: '2px' }}>Charger {activeSession.charger_number}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="bay">{activeSession.charger_number}</span>
+              <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)' }}>Charging session</span>
             </div>
             <span className="status-badge charging">
               <span className="status-dot charging" />
@@ -114,53 +111,49 @@ export default function Home() {
           </div>
           <div className="session-stats">
             <div className="session-stat">
-              <div className="value">{parseFloat(activeSession.energy_kwh || 0).toFixed(2)}</div>
-              <div className="label">kWh</div>
+              <div className="value">{parseFloat(activeSession.energy_kwh || 0).toFixed(3)}</div>
+              <div className="label">kWh delivered</div>
             </div>
             <div className="session-stat">
-              <div className="value">₹{parseFloat(activeSession.cost || 0).toFixed(0)}</div>
-              <div className="label">Cost</div>
+              <div className="value">{rupees(activeSession.cost)}</div>
+              <div className="label">Cost so far</div>
             </div>
             <div className="session-stat">
               <div className="value">{activeSession.duration_minutes || 0}</div>
-              <div className="label">Min</div>
+              <div className="label">Minutes</div>
             </div>
           </div>
-          <button className="btn btn-danger btn-block" style={{ marginTop: '1rem' }} onClick={handleStopCharging}>
-            Stop Charging
+          <button className="btn btn-danger btn-block" style={{ marginTop: '16px' }} onClick={handleStopCharging}>
+            Stop charging
           </button>
         </div>
       )}
 
-      {/* Quick Stats */}
+      {/* This month, as numbers */}
       <div className="stat-grid">
         <div className="stat-card" onClick={() => navigate('/chargers')} style={{ cursor: 'pointer' }}>
-          <div className="stat-icon cyan"><Zap size={18} /></div>
-          <div className="stat-value">{availableCount}/{chargers.length}</div>
-          <div className="stat-label">Available Chargers</div>
+          <div className="stat-value">{availableCount} of {chargers.length}</div>
+          <div className="stat-label">Chargers free now</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon green"><Battery size={18} /></div>
-          <div className="stat-value">{billing?.currentMonth?.energy_kwh?.toFixed(1) || '0'}</div>
-          <div className="stat-label">kWh This Month</div>
+          <div className="stat-value">{(billing?.currentMonth?.energy_kwh || 0).toFixed(1)}</div>
+          <div className="stat-label">kWh this month</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon yellow"><IndianRupee size={18} /></div>
-          <div className="stat-value">₹{billing?.currentMonth?.amount?.toFixed(0) || '0'}</div>
-          <div className="stat-label">This Month</div>
+          <div className="stat-value">{rupees(billing?.currentMonth?.amount)}</div>
+          <div className="stat-label">Unbilled this month</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon purple"><Clock size={18} /></div>
           <div className="stat-value">{billing?.currentMonth?.session_count || 0}</div>
-          <div className="stat-label">Sessions</div>
+          <div className="stat-label">Sessions this month</div>
         </div>
       </div>
 
-      {/* Available Chargers */}
+      {/* Chargers */}
       <div className="section-header">
         <h3 className="section-title">Chargers</h3>
         <button className="btn btn-ghost btn-sm" onClick={() => navigate('/chargers')}>
-          View All <ChevronRight size={14} />
+          View all <ChevronRight size={16} strokeWidth={1.5} />
         </button>
       </div>
 
@@ -171,13 +164,10 @@ export default function Home() {
             className="charger-card"
             onClick={() => navigate(`/chargers/${charger.id}`)}
           >
-            <div className={`charger-icon ${charger.status}`}>
-              <Zap size={22} />
-            </div>
             <div className="charger-info">
-              <h3>{charger.charger_number} — {charger.name}</h3>
+              <h3><span className="bay">{charger.charger_number}</span>{charger.name}</h3>
               <span className="location">
-                <MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> {charger.location_description}
+                {charger.location_description}
               </span>
               <div className="charger-meta">
                 <span className="meta-tag">{charger.power_rating_kw} kW</span>

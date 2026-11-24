@@ -56,10 +56,8 @@ export default function ReceiptModal({ isOpen, onClose, data }) {
             color: '#854d0e',
             textAlign: 'center',
             fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}>
-            ⚠️ Demo Mode Test Transaction — Simulated Receipt (Not a tax deduction voucher)
+                      }}>
+            Demo Mode Test Transaction — Simulated Receipt (Not a tax deduction voucher)
           </div>
         )}
 
@@ -73,7 +71,7 @@ export default function ReceiptModal({ isOpen, onClose, data }) {
               }}>
                 <Zap size={16} />
               </div>
-              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>EcoVoltX</h2>
+              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 500, color: '#0f172a' }}>EcoVoltX</h2>
             </div>
             <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
               Powered by EcoNelssol
@@ -87,7 +85,7 @@ export default function ReceiptModal({ isOpen, onClose, data }) {
               display: 'inline-flex', alignItems: 'center', gap: '4px',
               padding: '0.25rem 0.6rem', borderRadius: '9999px',
               background: '#dcfce7', color: '#15803d',
-              fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem',
+              fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.5rem',
             }}>
               <CheckCircle size={12} /> PAID
             </span>
@@ -99,13 +97,13 @@ export default function ReceiptModal({ isOpen, onClose, data }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', fontSize: '0.82rem' }}>
           <div>
-            <div style={{ fontWeight: 600, color: '#475569', marginBottom: '0.25rem', textTransform: 'uppercase', fontSize: '0.72rem' }}>Billed To</div>
-            <div style={{ fontWeight: 700, color: '#0f172a' }}>{data.user_name || 'Resident Member'}</div>
+            <div style={{ fontWeight: 600, color: '#475569', marginBottom: '0.25rem', fontSize: '0.72rem' }}>Billed To</div>
+            <div style={{ fontWeight: 500, color: '#0f172a' }}>{data.user_name || 'Resident Member'}</div>
             <div style={{ color: '#64748b' }}>Flat: {data.flat_number || 'A-101'}</div>
             <div style={{ color: '#64748b' }}>{data.society_name || 'Green Valley Residency'}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontWeight: 600, color: '#475569', marginBottom: '0.25rem', textTransform: 'uppercase', fontSize: '0.72rem' }}>Transaction Details</div>
+            <div style={{ fontWeight: 600, color: '#475569', marginBottom: '0.25rem', fontSize: '0.72rem' }}>Transaction Details</div>
             <div>Ref: <strong style={{ color: '#0f172a' }}>{data.transaction_reference || `TXN_${data.id || '2026'}`}</strong></div>
             <div style={{ color: '#64748b' }}>Order: {data.order_reference || data.gateway_order_id || 'ORD_ECOVOLTX'}</div>
             <div style={{ color: '#64748b' }}>Method: {data.method || 'UPI / Netbanking'}</div>
@@ -148,8 +146,8 @@ export default function ReceiptModal({ isOpen, onClose, data }) {
               </td>
             </tr>
             <tr style={{ borderTop: '2px solid #0f172a' }}>
-              <td colSpan="3" style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 800, fontSize: '1rem', color: '#0f172a' }}>Total Paid:</td>
-              <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 800, fontSize: '1.15rem', color: '#00A651' }}>
+              <td colSpan="3" style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 500, fontSize: '1rem', color: '#0f172a' }}>Total Paid:</td>
+              <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 500, fontSize: '1.15rem', color: '#00A651' }}>
                 ₹{parseFloat(data.total_amount || data.amount || 148).toFixed(2)}
               </td>
             </tr>

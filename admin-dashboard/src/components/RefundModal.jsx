@@ -39,32 +39,32 @@ export default function RefundModal({ isOpen, onClose, payment, showToast, onSuc
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{
         background: '#141e33',
         borderRadius: '16px',
-        border: '1px solid #1e293b',
+        border: '1px solid var(--border-color)',
         width: '100%',
         maxWidth: '460px',
         padding: '24px',
-        color: '#f8fafc',
+        color: 'var(--text-primary)',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '36px', height: '36px', borderRadius: '8px',
-              background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444',
+              background: 'rgba(239, 68, 68, 0.15)', color: 'var(--accent-rose)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <RotateCcw size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 500 }}>
                 Issue Payment Refund
               </h3>
-              <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                 Ref: {payment.transaction_reference} · Resident: {payment.user_name}
               </span>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
             <X size={20} />
           </button>
         </div>
@@ -85,7 +85,7 @@ export default function RefundModal({ isOpen, onClose, payment, showToast, onSuc
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label className="form-label" style={{ fontWeight: 600, color: '#f8fafc' }}>
+            <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
               Refund Amount (₹)
             </label>
             <input
@@ -97,13 +97,13 @@ export default function RefundModal({ isOpen, onClose, payment, showToast, onSuc
               onChange={e => setAmount(e.target.value)}
               required
             />
-            <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
               Maximum refundable amount: ₹{parseFloat(payment.amount).toFixed(2)}
             </span>
           </div>
 
           <div className="form-group" style={{ marginBottom: '20px' }}>
-            <label className="form-label" style={{ fontWeight: 600, color: '#f8fafc' }}>
+            <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
               Reason for Refund
             </label>
             <textarea
@@ -124,7 +124,7 @@ export default function RefundModal({ isOpen, onClose, payment, showToast, onSuc
               type="submit"
               className="btn btn-primary"
               disabled={loading}
-              style={{ flex: 2, background: '#ef4444', borderColor: '#ef4444' }}
+              style={{ flex: 2, background: 'var(--accent-rose)', borderColor: 'var(--accent-rose)' }}
             >
               {loading ? 'Processing...' : 'Confirm & Issue Refund'}
             </button>

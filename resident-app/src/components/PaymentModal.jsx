@@ -203,7 +203,7 @@ export default function PaymentModal({
         width: '100%',
         maxWidth: '440px',
         padding: '1.5rem',
-        color: '#f8fafc',
+        color: 'var(--text-primary)',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
       }}>
         {/* Header */}
@@ -221,14 +221,14 @@ export default function PaymentModal({
             }}>
               <CreditCard size={18} />
             </div>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Payment Checkout</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Pay</h3>
           </div>
           <button
             onClick={onClose}
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               padding: '4px',
             }}
@@ -263,7 +263,7 @@ export default function PaymentModal({
                 <>
                   <AlertTriangle size={16} color="#eab308" />
                   <span style={{ color: '#fef08a' }}>
-                    <strong>DEMO / TEST MODE:</strong> {gatewayConfig?.provider === 'razorpay' ? 'Razorpay Test Gateway' : 'Mock Gateway Adapter'} (No real bank charge)
+                    <strong>DEMO / TEST MODE:</strong> {gatewayConfig?.provider === 'razorpay' ? 'Razorpay test gateway' : 'Demo gateway'} (No real bank charge)
                   </span>
                 </>
               )}
@@ -277,10 +277,10 @@ export default function PaymentModal({
               border: '1px solid #1a2a1f',
               marginBottom: '1.25rem',
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
                 Item Payable
               </div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '0.75rem' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
                 {paymentTarget.title || 'EV Charging Services'}
               </div>
               <div style={{
@@ -290,8 +290,8 @@ export default function PaymentModal({
                 borderTop: '1px dashed #233728',
                 paddingTop: '0.75rem',
               }}>
-                <span style={{ color: '#94a3b8', fontSize: '0.88rem' }}>Total Amount:</span>
-                <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00A651' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Total</span>
+                <span style={{ fontSize: '1.4rem', fontWeight: 500, color: '#00A651' }}>
                   ₹{parseFloat(paymentTarget.amount).toFixed(2)}
                 </span>
               </div>
@@ -299,7 +299,7 @@ export default function PaymentModal({
 
             {/* Payment Method Selector */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ fontSize: '0.82rem', color: '#94a3b8', display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+              <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
                 Select Payment Method
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
@@ -313,7 +313,7 @@ export default function PaymentModal({
                       borderRadius: '8px',
                       border: method === m ? '2px solid #00A651' : '1px solid #233728',
                       background: method === m ? 'rgba(0, 166, 81, 0.15)' : '#0d1510',
-                      color: method === m ? '#00A651' : '#cbd5e1',
+                      color: method === m ? '#00A651' : 'var(--text-secondary)',
                       fontWeight: 600,
                       fontSize: '0.82rem',
                       cursor: 'pointer',
@@ -355,10 +355,10 @@ export default function PaymentModal({
             <div style={{ display: 'inline-block', marginBottom: '1rem' }}>
               <div className="spinner" style={{ width: '42px', height: '42px', borderWidth: '3px' }} />
             </div>
-            <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#f8fafc' }}>
+            <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
               Processing & Verifying Payment...
             </h4>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
               Performing trusted server-side HMAC signature verification. Please do not close this window.
             </p>
           </div>
@@ -380,10 +380,10 @@ export default function PaymentModal({
             }}>
               <CheckCircle size={36} />
             </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.25rem' }}>
-              Payment Successful!
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+              Payment received
             </h3>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
               Your transaction has been securely verified and recorded.
             </p>
 
@@ -398,19 +398,19 @@ export default function PaymentModal({
               marginBottom: '1.25rem',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                <span style={{ color: '#94a3b8' }}>Transaction Ref:</span>
-                <span style={{ fontWeight: 600, color: '#f8fafc' }}>{paymentResult.transaction_reference}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>Reference</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{paymentResult.transaction_reference}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                <span style={{ color: '#94a3b8' }}>Amount Paid:</span>
-                <span style={{ fontWeight: 700, color: '#00A651' }}>₹{parseFloat(paymentResult.amount).toFixed(2)}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>Amount paid</span>
+                <span style={{ fontWeight: 500, color: '#00A651' }}>₹{parseFloat(paymentResult.amount).toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                <span style={{ color: '#94a3b8' }}>Payment Method:</span>
-                <span style={{ fontWeight: 600, color: '#f8fafc' }}>{paymentResult.method || method}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>Method</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{paymentResult.method || method}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#94a3b8' }}>Mode:</span>
+                <span style={{ color: 'var(--text-secondary)' }}>Mode:</span>
                 <span style={{
                   color: paymentResult.is_test ? '#eab308' : '#00A651',
                   fontWeight: 600,
@@ -443,14 +443,14 @@ export default function PaymentModal({
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 1rem',
-              color: '#ef4444',
+              color: 'var(--red)',
             }}>
               <XCircle size={36} />
             </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.25rem' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
               Payment Incomplete
             </h3>
-            <p style={{ fontSize: '0.85rem', color: '#ef4444', marginBottom: '1.25rem', padding: '0 0.5rem' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--red)', marginBottom: '1.25rem', padding: '0 0.5rem' }}>
               {errorMessage || 'The payment could not be completed.'}
             </p>
 

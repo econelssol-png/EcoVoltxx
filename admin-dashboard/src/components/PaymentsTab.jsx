@@ -90,10 +90,10 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc' }}>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 500, color: 'var(--text-primary)' }}>
             Society Financial Transactions & Reconciliation
           </h3>
-          <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             Audit all resident payment collections, test mode transactions, and process refunds
           </p>
         </div>
@@ -114,11 +114,11 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
         <div className="metric-card" style={{ borderLeft: '4px solid #00A651' }}>
           <div className="metric-card-top">
             <span className="metric-title">Verified Real Collections</span>
-            <div className="metric-icon-box" style={{ background: 'rgba(0, 166, 81, 0.15)', color: '#00A651' }}>
+            <div className="metric-icon-box" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--accent)' }}>
               <ShieldCheck size={18} />
             </div>
           </div>
-          <div className="metric-value" style={{ color: '#00A651' }}>
+          <div className="metric-value" style={{ color: 'var(--accent)' }}>
             ₹{(summary?.total_real_collections || 0).toLocaleString()}
           </div>
           <div className="metric-subtitle">
@@ -130,14 +130,14 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
         <div className="metric-card" style={{ borderLeft: '4px solid #facc15' }}>
           <div className="metric-card-top">
             <span className="metric-title">Demo / Test Collections</span>
-            <div className="metric-icon-box" style={{ background: 'rgba(234, 179, 8, 0.15)', color: '#facc15' }}>
+            <div className="metric-icon-box" style={{ background: 'rgba(234, 179, 8, 0.15)', color: 'var(--accent-amber)' }}>
               <AlertTriangle size={18} />
             </div>
           </div>
-          <div className="metric-value" style={{ color: '#facc15' }}>
+          <div className="metric-value" style={{ color: 'var(--accent-amber)' }}>
             ₹{(summary?.total_test_collections || 0).toLocaleString()}
           </div>
-          <div className="metric-subtitle" style={{ color: '#94a3b8' }}>
+          <div className="metric-subtitle" style={{ color: 'var(--text-secondary)' }}>
             {summary?.test_transaction_count || 0} simulated transactions (Excluded from tax revenue)
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
         <div className="metric-card">
           <div className="metric-card-top">
             <span className="metric-title">Pending Receivables</span>
-            <div className="metric-icon-box" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' }}>
+            <div className="metric-icon-box" style={{ background: 'rgba(237, 237, 237, 0.06)', color: '#3b82f6' }}>
               <Clock size={18} />
             </div>
           </div>
@@ -162,11 +162,11 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
         <div className="metric-card">
           <div className="metric-card-top">
             <span className="metric-title">Total Refunded</span>
-            <div className="metric-icon-box" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}>
+            <div className="metric-icon-box" style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--accent-rose)' }}>
               <RotateCcw size={18} />
             </div>
           </div>
-          <div className="metric-value" style={{ color: '#ef4444' }}>
+          <div className="metric-value" style={{ color: 'var(--accent-rose)' }}>
             ₹{(summary?.total_refunded || 0).toLocaleString()}
           </div>
           <div className="metric-subtitle">
@@ -180,7 +180,7 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
         background: '#0f172a',
         padding: '16px',
         borderRadius: '12px',
-        border: '1px solid #1e293b',
+        border: '1px solid var(--border-color)',
         marginBottom: '20px',
         display: 'flex',
         gap: '12px',
@@ -204,7 +204,7 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
 
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Mode:</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Mode:</span>
             <select
               className="form-select"
               style={{ width: 'auto', padding: '6px 12px' }}
@@ -218,7 +218,7 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Status:</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Status:</span>
             <select
               className="form-select"
               style={{ width: 'auto', padding: '6px 12px' }}
@@ -260,35 +260,35 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
                 return (
                   <tr key={p.id}>
                     <td>
-                      <div style={{ fontFamily: 'monospace', fontWeight: 700, color: '#f8fafc', fontSize: '0.88rem' }}>
+                      <div style={{ fontFamily: 'monospace', fontWeight: 500, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
                         {p.transaction_reference || `TXN_${p.id}`}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                         {p.gateway_order_id || p.order_reference || '—'}
                       </div>
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 600, color: '#f8fafc' }}>{p.user_name || `User #${p.user_id}`}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.user_name || `User #${p.user_id}`}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                         Flat: {p.flat_number || 'Resident'}
                       </div>
                     </td>
 
                     <td>
-                      <span style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                         {p.invoice_id ? `Invoice #${p.invoice_id}` : (p.session_id ? `Session #${p.session_id}` : (p.booking_id ? `Booking Deposit #${p.booking_id}` : 'General'))}
                       </span>
                     </td>
 
                     <td>
-                      <span style={{ fontWeight: 700, fontSize: '0.95rem', color: isRefunded ? '#ef4444' : '#00A651' }}>
+                      <span style={{ fontWeight: 500, fontSize: '0.95rem', color: isRefunded ? 'var(--accent-rose)' : 'var(--accent)' }}>
                         ₹{parseFloat(p.amount).toFixed(2)}
                       </span>
                     </td>
 
                     <td>
-                      <span style={{ background: '#0b1120', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, color: '#cbd5e1', border: '1px solid #1e293b' }}>
+                      <span style={{ background: 'var(--bg-input)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
                         {p.method || 'UPI'}
                       </span>
                     </td>
@@ -300,8 +300,8 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
                           padding: '3px 8px',
                           borderRadius: '4px',
                           background: 'rgba(234, 179, 8, 0.15)',
-                          color: '#facc15',
-                          fontWeight: 700,
+                          color: 'var(--accent-amber)',
+                          fontWeight: 500,
                         }}>
                           TEST / DEMO
                         </span>
@@ -310,9 +310,9 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
                           fontSize: '0.68rem',
                           padding: '3px 8px',
                           borderRadius: '4px',
-                          background: 'rgba(0, 166, 81, 0.15)',
-                          color: '#00A651',
-                          fontWeight: 700,
+                          background: 'rgba(237, 237, 237, 0.06)',
+                          color: 'var(--accent)',
+                          fontWeight: 500,
                         }}>
                           LIVE PRODUCTION
                         </span>
@@ -326,7 +326,7 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
                       </span>
                     </td>
 
-                    <td style={{ fontSize: '0.78rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                    <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                       {new Date(p.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       {' '}
                       {new Date(p.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
@@ -350,14 +350,14 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
                               className="btn btn-outline btn-sm"
                               title="Process Refund"
                               onClick={() => onOpenRefund(p)}
-                              style={{ padding: '4px 8px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                              style={{ padding: '4px 8px', color: 'var(--accent-rose)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
                             >
                               <RotateCcw size={13} />
                             </button>
                           </>
                         )}
                         {isRefunded && (
-                          <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>Refunded</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--accent-rose)', fontWeight: 600 }}>Refunded</span>
                         )}
                       </div>
                     </td>
@@ -367,7 +367,7 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
 
               {filteredPayments.length === 0 && (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     No payment transactions match the selected filters.
                   </td>
                 </tr>

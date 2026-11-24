@@ -58,14 +58,9 @@ export default function Chargers() {
       <div className="charger-list">
         {filtered.map(charger => (
           <div key={charger.id} className="charger-card" onClick={() => navigate(`/chargers/${charger.id}`)}>
-            <div className={`charger-icon ${charger.status}`}>
-              <Zap size={22} />
-            </div>
             <div className="charger-info">
-              <h3>{charger.charger_number} — {charger.name}</h3>
-              <span className="location">
-                <MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> {charger.location_description}
-              </span>
+              <h3><span className="bay">{charger.charger_number}</span> {charger.name}</h3>
+              <span className="location">{charger.location_description}</span>
               <div className="charger-meta">
                 <span className="meta-tag">{charger.power_rating_kw} kW</span>
                 <span className="meta-tag">{charger.connector_type}</span>

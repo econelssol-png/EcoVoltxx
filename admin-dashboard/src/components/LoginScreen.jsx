@@ -41,7 +41,7 @@ export default function LoginScreen({ onLogin, demoMode, demoAccounts = [] }) {
         width: '100%',
         maxWidth: '400px',
         background: '#111a2e',
-        border: '1px solid #1e293b',
+        border: '1px solid var(--border-color)',
         borderRadius: '16px',
         padding: '32px 28px',
         boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)',
@@ -61,7 +61,7 @@ export default function LoginScreen({ onLogin, demoMode, demoAccounts = [] }) {
           </div>
         </div>
 
-        <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: '18px 0 22px' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '18px 0 22px' }}>
           Sign in with a society admin or super admin account.
         </p>
 
@@ -119,8 +119,8 @@ export default function LoginScreen({ onLogin, demoMode, demoAccounts = [] }) {
         </form>
 
         {demoMode && demoAccounts.length > 0 && (
-          <div style={{ marginTop: '24px', borderTop: '1px solid #1e293b', paddingTop: '18px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#eab308', marginBottom: '10px' }}>
+          <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '18px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '10px' }}>
               Demo mode · quick sign-in
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

@@ -38,7 +38,7 @@ export default function Profile() {
 
       {/* Personal Info */}
       <div className="profile-section">
-        <h3 style={{ fontSize: 'var(--font-sm)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem' }}>Personal Info</h3>
+        <h3 style={{ fontSize: 'var(--font-sm)', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Personal details</h3>
         <div className="profile-row">
           <span className="label"><User size={14} style={{display:'inline',verticalAlign:'middle'}} /> Name</span>
           <span className="value">{profile?.user?.name}</span>
@@ -56,7 +56,7 @@ export default function Profile() {
       {/* Society Info */}
       {profile?.memberships?.filter(m => m.status === 'approved').map(m => (
         <div key={m.society_id} className="profile-section">
-          <h3 style={{ fontSize: 'var(--font-sm)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem' }}>Society</h3>
+          <h3 style={{ fontSize: 'var(--font-sm)', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Society</h3>
           <div className="profile-row">
             <span className="label"><Building2 size={14} style={{display:'inline',verticalAlign:'middle'}} /> Society</span>
             <span className="value">{m.society_name}</span>
@@ -75,7 +75,7 @@ export default function Profile() {
       {/* Vehicles */}
       {profile?.vehicles?.length > 0 && (
         <div className="profile-section">
-          <h3 style={{ fontSize: 'var(--font-sm)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem' }}>Vehicles</h3>
+          <h3 style={{ fontSize: 'var(--font-sm)', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Vehicles</h3>
           {profile.vehicles.map(v => (
             <div key={v.id} className="profile-row">
               <span className="label"><Car size={14} style={{display:'inline',verticalAlign:'middle'}} /> {v.make} {v.model}</span>
@@ -96,7 +96,7 @@ export default function Profile() {
 
       {/* App Info Footer */}
       <div style={{ textAlign: 'center', marginTop: '2.5rem', paddingBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-        <div style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>⚡ EcoVoltX v1.0.0</div>
+        <div style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>EcoVoltX 1.0.0</div>
         <div style={{ marginTop: '4px' }}>
           Powered by <span className="econelssol-brand"><span className="eco">Eco</span><span className="nelssol">Nelssol</span></span>
         </div>
