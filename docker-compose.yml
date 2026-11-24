@@ -5,11 +5,22 @@ services:
     restart: always
     ports:
       - "3000:3000"
+    # Secrets come from the environment or a .env file next to this file
+    # (never commit real values). Generate each with:
+    #   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
     environment:
       - PORT=3000
       - NODE_ENV=production
-      - JWT_SECRET=ecovoltx_production_jwt_secret_2026
-      - JWT_REFRESH_SECRET=ecovoltx_production_jwt_refresh_2026
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET (at least 32 random characters)}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET (at least 32 random characters)}
+      - DEMO_MODE=${DEMO_MODE:-false}
+      - SUPERADMIN_EMAIL=${SUPERADMIN_EMAIL:-}
+      - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD:-}
+      - CORS_ORIGIN=${CORS_ORIGIN:-}
+      - PAYMENT_MODE=${PAYMENT_MODE:-}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-}
+      - RAZORPAY_WEBHOOK_SECRET=${RAZORPAY_WEBHOOK_SECRET:-}
     volumes:
       - ecovoltx_data:/app/server/data
 

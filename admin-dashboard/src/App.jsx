@@ -41,6 +41,7 @@ import PaymentsTab from './components/PaymentsTab';
 import IntegrationLogsTab from './components/IntegrationLogsTab';
 import ChargerDiagnosticsModal from './components/ChargerDiagnosticsModal';
 import RefundModal from './components/RefundModal';
+import LoginScreen from './components/LoginScreen';
 import EditChargerModal from './components/EditChargerModal';
 import ReceiptModal from './components/ReceiptModal';
 
@@ -92,32 +93,56 @@ export default function App() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Demo accounts
+  // Demo mode (from the server) enables the demo quick sign-in and role switcher
+  const [demoMode, setDemoMode] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Demo accounts (only offered when the server runs with DEMO_MODE on)
+  const DEMO_PASSWORD = 'password123';
   const demoAccounts = [
-    { label: 'Super Admin (MRR & Platform)', email: 'superadmin@societycharge.com', role: 'super_admin' },
-    { label: 'Green Valley Admin (Pro Plan)', email: 'admin_gvr@test.com', role: 'society_admin' },
-    { label: 'Sunrise Towers Admin (Starter Plan)', email: 'admin_srt@test.com', role: 'society_admin' },
+    { label: 'Super Admin (MRR & Platform)', email: 'superadmin@societycharge.com', password: DEMO_PASSWORD },
+    { label: 'Green Valley Admin (Pro Plan)', email: 'admin_gvr@test.com', password: DEMO_PASSWORD },
+    { label: 'Sunrise Towers Admin (Starter Plan)', email: 'admin_srt@test.com', password: DEMO_PASSWORD },
   ];
 
-  // Quick switch login
+  const residentAppUrl = import.meta.env.DEV ? 'http://localhost:5173/app/' : '/app/';
+
+  // Apply a signed-in user: only super admins and society admins may use the portal
+  const applySession = async (user, memberships = []) => {
+    const adminMemberships = memberships.filter(m => m.member_role === 'admin');
+    if (user.role !== 'super_admin' && adminMemberships.length === 0) {
+      adminApi.clearTokens();
+      throw new Error('This account has no admin access. Residents should use the resident app.');
+    }
+
+    setCurrentTab('dashboard');
+    if (user.role === 'super_admin') {
+      const sRes = await adminApi.getAllSocieties();
+      const list = sRes.societies || [];
+      setSocietiesList(list);
+      setSelectedSocietyId(list[0]?.id || null);
+    } else {
+      setSocietiesList(adminMemberships.length > 1
+        ? adminMemberships.map(m => ({ id: m.society_id, name: m.society_name, code: m.society_code }))
+        : []);
+      setSelectedSocietyId(adminMemberships[0].society_id);
+    }
+    setCurrentUser(user);
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleLogin = async (email, password) => {
+    const data = await adminApi.login(email, password);
+    adminApi.setTokens(data.accessToken, data.refreshToken);
+    await applySession(data.user, data.memberships);
+    showToast(`Signed in as ${data.user.name}`);
+  };
+
+  // Demo role switcher (DEMO_MODE only)
   const handleQuickLogin = async (email) => {
     setLoading(true);
     try {
-      const data = await adminApi.login(email, 'Password@123');
-      adminApi.setTokens(data.accessToken, data.refreshToken);
-      setCurrentUser(data.user);
-
-      if (data.user.role === 'super_admin') {
-        const sRes = await adminApi.getAllSocieties();
-        setSocietiesList(sRes.societies || []);
-        if (sRes.societies?.length > 0 && !selectedSocietyId) {
-          setSelectedSocietyId(sRes.societies[0].id);
-        }
-      } else if (data.memberships?.length > 0) {
-        setSelectedSocietyId(data.memberships[0].society_id);
-      }
-      showToast(`Logged in as ${data.user.name}`);
-      setRefreshTrigger(prev => prev + 1);
+      await handleLogin(email, DEMO_PASSWORD);
     } catch (err) {
       showToast(err.message || 'Login failed', 'error');
     } finally {
@@ -125,9 +150,48 @@ export default function App() {
     }
   };
 
-  // Initial boot: auto-login to Green Valley Admin by default
+  const handleLogout = () => {
+    adminApi.clearTokens();
+    setCurrentUser(null);
+    setSelectedSocietyId(null);
+    setSocietiesList([]);
+    setDashboardData(null);
+    setChargers([]);
+    setSessions([]);
+    setSuperAdminData(null);
+    setSubscriptionData(null);
+    setCurrentTab('dashboard');
+  };
+
+  // Initial boot: read demo mode, then restore a saved session (no automatic login)
   useEffect(() => {
-    handleQuickLogin('admin_gvr@test.com');
+    adminApi.onSessionExpired = () => {
+      handleLogout();
+      showToast('Session expired. Please sign in again.', 'error');
+    };
+
+    (async () => {
+      try {
+        const info = await adminApi.getServerInfo();
+        setDemoMode(Boolean(info.demo_mode));
+      } catch {
+        setDemoMode(false);
+      }
+
+      if (adminApi.token) {
+        try {
+          const me = await adminApi.getMe();
+          await applySession(me.user, me.memberships);
+        } catch {
+          adminApi.clearTokens();
+          setCurrentUser(null);
+        }
+      }
+      setLoading(false);
+      setAuthChecked(true);
+    })();
+
+    return () => { adminApi.onSessionExpired = null; };
   }, []);
 
   // Socket.IO for live charger simulation events
@@ -354,6 +418,27 @@ export default function App() {
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
 
+  if (!authChecked) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#070d19', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+        Loading EcoVoltX Admin…
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <>
+        {toast && (
+          <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 9999, background: toast.type === 'error' ? '#ef4444' : '#00A651', color: '#fff', padding: '12px 20px', borderRadius: '8px', fontWeight: 600 }}>
+            {toast.message}
+          </div>
+        )}
+        <LoginScreen onLogin={handleLogin} demoMode={demoMode} demoAccounts={demoAccounts} />
+      </>
+    );
+  }
+
   return (
     <div className="admin-layout">
       {/* Toast Notification */}
@@ -508,11 +593,12 @@ export default function App() {
               </div>
             </div>
             <button
-              onClick={() => handleQuickLogin('superadmin@societycharge.com')}
-              title="Switch to Super Admin"
+              onClick={handleLogout}
+              title="Sign out"
+              aria-label="Sign out"
               style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
             >
-              <RefreshCw size={16} />
+              <LogOut size={16} />
             </button>
           </div>
         </div>
@@ -583,7 +669,8 @@ export default function App() {
 
         {/* Page Body */}
         <div className="page-body">
-          {/* Demo Role Switcher Quick Bar */}
+          {/* Demo Role Switcher Quick Bar (DEMO_MODE only) */}
+          {demoMode && (
           <div className="demo-banner">
             <div className="demo-title">
               <Zap size={16} />
@@ -600,7 +687,7 @@ export default function App() {
                 </button>
               ))}
               <a
-                href="http://localhost:5173/app/"
+                href={residentAppUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="demo-btn"
@@ -610,6 +697,7 @@ export default function App() {
               </a>
             </div>
           </div>
+          )}
 
           {/* TAB: SUBSCRIPTIONS & PLANS (SOCIETY ADMIN) */}
           {currentTab === 'subscription' && (
@@ -2182,7 +2270,7 @@ export default function App() {
               </div>
               <div className="form-group">
                 <label className="form-label">Temporary Password</label>
-                <input name="password" type="password" defaultValue="Password@123" className="form-input" required />
+                <input name="password" type="password" className="form-input" placeholder="At least 8 characters" minLength={8} autoComplete="new-password" required />
               </div>
               <div className="form-group">
                 <label className="form-label">Admin Flat Number</label>

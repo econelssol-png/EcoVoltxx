@@ -1,15 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { Zap } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Demo logins are only shown when the server runs with DEMO_MODE on
+  useEffect(() => {
+    let active = true;
+    fetch(`${API_BASE}/health`)
+      .then((res) => (res.ok ? res.json() : {}))
+      .then((info) => { if (active) setDemoMode(Boolean(info.demo_mode)); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,12 +96,14 @@ export default function Login() {
           <button type="button" className="btn btn-secondary btn-block">Join Society / Create Account</button>
         </Link>
 
-        <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
-          <strong style={{ color: 'var(--text-secondary)' }}>Demo Credentials:</strong><br />
-          Resident: rahul@test.com / password123<br />
-          Admin: admin_gvr@test.com / password123<br />
-          Super Admin: superadmin@societycharge.com / password123
-        </div>
+        {demoMode && (
+          <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
+            <strong style={{ color: 'var(--text-secondary)' }}>Demo Credentials:</strong><br />
+            Resident: rahul@test.com / password123<br />
+            Admin: admin_gvr@test.com / password123<br />
+            Super Admin: superadmin@societycharge.com / password123
+          </div>
+        )}
       </form>
     </div>
   );

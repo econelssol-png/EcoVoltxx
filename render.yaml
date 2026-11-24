@@ -14,5 +14,12 @@ services:
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
+      # Off = no demo accounts; set SUPERADMIN_* in the Render dashboard
+      - key: DEMO_MODE
+        value: "false"
+      - key: SUPERADMIN_EMAIL
+        sync: false
+      - key: SUPERADMIN_PASSWORD
+        sync: false
       - key: CORS_ORIGIN
         value: "*"

@@ -10,6 +10,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { createServer } = require('http');
 const { Server: SocketIO } = require('socket.io');
 const path = require('path');
@@ -175,6 +176,7 @@ app.get('/api/health', (req, res) => {
     platform: 'EcoVoltX',
     powered_by: 'EcoNelssol',
     version: '1.0.0',
+    demo_mode: config.demoMode,
     timestamp: new Date().toISOString(),
   });
 });
@@ -529,8 +531,9 @@ app.get('/', (req, res) => {
       </div>
     </div>
 
-    <!-- Demo Credentials -->
     <div class="demo-box">
+      ${config.demoMode ? `
+      <!-- Demo Credentials (DEMO_MODE only) -->
       <div class="demo-title">
         <span>🔑 Demo Test Credentials (All passwords: password123)</span>
         <span style="color:#00A651; font-weight:600;">Pre-seeded in DB</span>
@@ -553,8 +556,9 @@ app.get('/', (req, res) => {
           <div class="cred-val">rahul@test.com (Flat A-101)</div>
         </div>
       </div>
+      ` : ''}
 
-      <div class="status-bar">
+      <div class="status-bar" style="${config.demoMode ? '' : 'margin-top:0; border-top:none; padding-top:0;'}">
         <div><span class="pulse"></span> EcoVoltX Platform & Charger Simulator Online (Port 3000)</div>
         <div>
           <span style="color:#94a3b8; margin-right:12px;">Powered by <span style="font-weight:700;"><span style="color:#00A651;">Eco</span><span style="color:#0066CC;">Nelssol</span></span></span>
@@ -590,18 +594,84 @@ if (!fs.existsSync(dataDir)) {
 }
 
 // ── Auto-initialize DB if needed & Start Server ─────────
+function fatal(lines) {
+  console.error(['', '✖ EcoVoltX cannot start:', ...lines.map((l) => `  - ${l}`), ''].join('\n'));
+  process.exit(1);
+}
+
+/**
+ * Create the first super admin for a fresh production database
+ * from SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD (no demo data, no shared password).
+ */
+async function createInitialSuperAdmin() {
+  const problems = [];
+  if (!config.superAdminEmail || !config.superAdminEmail.includes('@')) {
+    problems.push('SUPERADMIN_EMAIL must be set to the first super admin\'s email');
+  }
+  if (config.superAdminPassword.length < 12) {
+    problems.push('SUPERADMIN_PASSWORD must be set (at least 12 characters)');
+  }
+  if (problems.length) {
+    fatal([
+      'Fresh database and DEMO_MODE is off, so no demo accounts will be created.',
+      ...problems,
+      'Or set DEMO_MODE=true to load the sample demo data instead.',
+    ]);
+  }
+
+  const hash = await bcrypt.hash(config.superAdminPassword, 12);
+  await db('users').insert({
+    email: config.superAdminEmail,
+    password_hash: hash,
+    name: config.superAdminName,
+    role: 'super_admin',
+  });
+  console.log(`[DB] Created initial super admin ${config.superAdminEmail}. Sign in at /admin/ to set up societies.`);
+}
+
+/**
+ * Loud warning when a non-demo server still has the demo accounts
+ * (they all share the public demo password).
+ */
+async function warnAboutDemoAccounts() {
+  const demo = await db('users')
+    .where('email', 'superadmin@societycharge.com')
+    .orWhere('email', 'like', '%@test.com')
+    .count('id as count')
+    .first();
+  if (Number(demo?.count) > 0) {
+    console.warn(`[Security] DEMO_MODE is off but ${demo.count} demo account(s) with the public demo password exist. Delete them or change their passwords before going live.`);
+  }
+}
+
 async function startServer() {
+  // Refuse to run in production with missing/default/weak JWT secrets
+  const secretProblems = config.getSecretProblems();
+  if (secretProblems.length) {
+    if (config.isProduction) {
+      fatal([...secretProblems, 'Set long random values, e.g. node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"']);
+    }
+    console.warn(`[Security] Development only: ${secretProblems.join('; ')}`);
+  }
+
   try {
-    const hasUsers = await db.schema.hasTable('users');
     // Always apply pending migrations so existing databases get schema/security updates
     const [, applied] = await db.migrate.latest();
     if (applied.length) {
       console.log(`[DB] Applied migrations: ${applied.join(', ')}`);
     }
-    if (!hasUsers) {
-      console.log('[DB] Fresh database detected. Running seeds...');
-      await db.seed.run();
-      console.log('[DB] Seeds finished successfully.');
+    // "Fresh" = no users yet (also covers a first start that stopped before creating any)
+    const userCount = await db('users').count('id as count').first();
+    if (Number(userCount?.count) === 0) {
+      if (config.demoMode) {
+        console.log('[DB] Fresh database detected (DEMO_MODE on). Loading demo data...');
+        await db.seed.run();
+        console.log('[DB] Demo data loaded. All demo accounts use the password "password123".');
+      } else {
+        await createInitialSuperAdmin();
+      }
+    } else if (!config.demoMode) {
+      await warnAboutDemoAccounts();
     }
   } catch (err) {
     console.error('[DB] Database initialization notice:', err.message);
@@ -616,6 +686,7 @@ async function startServer() {
 ║  API:    http://localhost:${config.port}/api                        ║
 ║  Health: http://localhost:${config.port}/api/health                 ║
 ║  Env:    ${config.nodeEnv.padEnd(46)}║
+║  Demo:   ${(config.demoMode ? 'ON (sample data & demo logins)' : 'off').padEnd(46)}║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
     `);
