@@ -14,6 +14,7 @@ import {
   Building,
   Shield,
   LogOut,
+  KeyRound,
   Plus,
   RefreshCw,
   CheckCircle,
@@ -42,6 +43,7 @@ import IntegrationLogsTab from './components/IntegrationLogsTab';
 import ChargerDiagnosticsModal from './components/ChargerDiagnosticsModal';
 import RefundModal from './components/RefundModal';
 import LoginScreen from './components/LoginScreen';
+import ChangePasswordModal from './components/ChangePasswordModal';
 import EditChargerModal from './components/EditChargerModal';
 import ReceiptModal from './components/ReceiptModal';
 
@@ -90,6 +92,7 @@ export default function App() {
   const [showAddSocietyModal, setShowAddSocietyModal] = useState(false);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [showAssignAdminModal, setShowAssignAdminModal] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [selectedSocietyForAdmin, setSelectedSocietyForAdmin] = useState(null);
 
   // Notification / Alert message
@@ -599,6 +602,15 @@ export default function App() {
                 </div>
               </div>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              onClick={() => setShowChangePassword(true)}
+              title="Change password"
+              aria-label="Change password"
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+            >
+              <KeyRound size={16} />
+            </button>
             <button
               onClick={handleLogout}
               title="Sign out"
@@ -607,6 +619,7 @@ export default function App() {
             >
               <LogOut size={16} />
             </button>
+            </div>
           </div>
         </div>
       </aside>
@@ -2303,6 +2316,12 @@ export default function App() {
         showToast={showToast}
         onSuccess={() => fetchData()}
         demoMode={demoMode}
+      />
+
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+        showToast={showToast}
       />
 
       {/* MODAL: CHARGER DIAGNOSTICS & REMOTE COMMANDS */}

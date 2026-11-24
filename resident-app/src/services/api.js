@@ -47,7 +47,7 @@ class ApiService {
           }
         }
         this.clearTokens();
-        window.location.href = '/login';
+        window.location.href = `${import.meta.env.BASE_URL}login`; // /app/login
         throw new Error('Authentication failed');
       }
 
@@ -105,6 +105,16 @@ class ApiService {
 
   getMe() {
     return this.request('/auth/me');
+  }
+
+  // Changes the password and keeps this session signed in with fresh tokens
+  async changePassword(currentPassword, newPassword) {
+    const data = await this.request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+    this.setTokens(data.accessToken, data.refreshToken);
+    return data;
   }
 
   // Societies

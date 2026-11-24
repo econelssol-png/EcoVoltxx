@@ -191,6 +191,64 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
+// ── Change password ─────────────────────────────────────
+// Requires the current password. Revokes every refresh token for the user
+// (other devices are signed out once their access token expires) and
+// returns fresh tokens for this session.
+const MIN_PASSWORD_LENGTH = 8;
+
+router.post('/change-password', authenticate, async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+
+    if (!current_password || !new_password) {
+      return res.status(400).json({ error: 'Current and new password are required' });
+    }
+    if (typeof new_password !== 'string' || new_password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+    }
+    if (new_password.length > 128) {
+      return res.status(400).json({ error: 'New password must be at most 128 characters' });
+    }
+
+    const user = await db('users').where({ id: req.user.id }).first();
+    if (!user || !user.is_active) {
+      return res.status(401).json({ error: 'User not found or disabled' });
+    }
+
+    const isMatch = await bcrypt.compare(String(current_password), user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+    if (await bcrypt.compare(new_password, user.password_hash)) {
+      return res.status(400).json({ error: 'New password must be different from the current one' });
+    }
+
+    const passwordHash = await bcrypt.hash(new_password, 12);
+    await db('users').where({ id: user.id }).update({
+      password_hash: passwordHash,
+      updated_at: db.fn.now(),
+    });
+
+    // Sign out other sessions
+    await db('refresh_tokens').where({ user_id: user.id, revoked: false }).update({ revoked: true });
+
+    const tokens = generateTokens(user);
+    const refreshExpiry = new Date();
+    refreshExpiry.setDate(refreshExpiry.getDate() + 7);
+    await db('refresh_tokens').insert({
+      user_id: user.id,
+      token: tokens.refreshToken,
+      expires_at: refreshExpiry.toISOString(),
+    });
+
+    res.json({ message: 'Password changed', ...tokens });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'Could not change password' });
+  }
+});
+
 // ── Get current user info ───────────────────────────────
 router.get('/me', authenticate, async (req, res) => {
   try {

@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import api from '../services/api';
-import { User, Mail, Phone, Home, Car, LogOut, Building2 } from 'lucide-react';
+import { User, Mail, Phone, Home, Car, LogOut, Building2, KeyRound } from 'lucide-react';
+import ChangePasswordSheet from '../components/ChangePasswordSheet';
 
 export default function Profile() {
   const { user, society, logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [passwordNotice, setPasswordNotice] = useState('');
 
   useEffect(() => {
     loadProfile();
@@ -85,14 +88,35 @@ export default function Profile() {
         </div>
       )}
 
+      {/* Security */}
+      <div className="profile-section">
+        <h3 style={{ fontSize: 'var(--font-sm)', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Security</h3>
+        <div className="profile-row">
+          <span className="label"><KeyRound size={14} style={{display:'inline',verticalAlign:'middle'}} /> Password</span>
+          <button className="btn btn-secondary btn-sm" onClick={() => { setPasswordNotice(''); setShowChangePassword(true); }}>
+            Change
+          </button>
+        </div>
+        {passwordNotice && (
+          <p role="status" style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)', padding: '0 0 12px' }}>{passwordNotice}</p>
+        )}
+      </div>
+
       {/* Logout */}
       <button
         className="btn btn-danger btn-block"
         style={{ marginTop: '1rem' }}
         onClick={logout}
       >
-        <LogOut size={18} /> Sign Out
+        <LogOut size={16} strokeWidth={1.5} /> Sign out
       </button>
+
+      {showChangePassword && (
+        <ChangePasswordSheet
+          onClose={() => setShowChangePassword(false)}
+          onChanged={() => setPasswordNotice('Password changed. Your other devices are signed out within an hour')}
+        />
+      )}
 
       {/* App Info Footer */}
       <div style={{ textAlign: 'center', marginTop: '2.5rem', paddingBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
