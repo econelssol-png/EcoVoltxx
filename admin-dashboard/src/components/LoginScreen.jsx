@@ -35,12 +35,12 @@ export default function LoginScreen({ onLogin, demoMode, demoAccounts = [] }) {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '24px 16px',
-      background: '#070d19',
+      background: 'var(--bg-primary)',
     }}>
       <div style={{
         width: '100%',
         maxWidth: '400px',
-        background: '#111a2e',
+        background: 'var(--bg-card)',
         border: '1px solid var(--border-color)',
         borderRadius: '16px',
         padding: '32px 28px',

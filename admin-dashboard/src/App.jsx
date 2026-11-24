@@ -262,6 +262,10 @@ export default function App() {
         if (sup) setSuperAdminData(sup);
         const sList = await adminApi.getAllSocieties().catch(() => ({ societies: [] }));
         setSocietiesList(sList.societies || []);
+        // A fresh install starts with no society selected; pick the first one once it exists
+        if (!selectedSocietyId && sList.societies?.length) {
+          setSelectedSocietyId(sList.societies[0].id);
+        }
         const platSubs = await adminApi.getPlatformSubscriptions().catch(() => null);
         if (platSubs) setPlatformSubscriptions(platSubs);
       }
@@ -341,7 +345,7 @@ export default function App() {
     e.preventDefault();
     const form = e.target;
     try {
-      await adminApi.createSociety({
+      const created = await adminApi.createSociety({
         name: form.name.value,
         code: form.code.value,
         address: form.address.value,
@@ -351,6 +355,8 @@ export default function App() {
       });
       showToast('Society registered');
       setShowAddSocietyModal(false);
+      // Switch to the new society so its chargers and residents can be set up right away
+      if (created?.society?.id) setSelectedSocietyId(created.society.id);
       fetchData();
     } catch (err) {
       showToast(err.message, 'error');
@@ -430,7 +436,7 @@ export default function App() {
 
   if (!authChecked) {
     return (
-      <div style={{ minHeight: '100vh', background: '#070d19', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
         Loading EcoVoltX Admin…
       </div>
     );
