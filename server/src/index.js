@@ -320,12 +320,17 @@ async function startServer() {
 ║  Health: http://localhost:${config.port}/api/health                 ║
 ║  Env:    ${config.nodeEnv.padEnd(46)}║
 ║  Demo:   ${(config.demoMode ? 'ON (sample data & demo logins)' : 'off').padEnd(46)}║
+║  Sim:    ${(config.chargerSimulator ? 'ON (simulated charging sessions)' : 'off').padEnd(46)}║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
     `);
 
-    // Start charger simulation
-    chargerSimulator.startSimulation();
+    // Simulated charging sessions (demo data, DEMO-mode chargers)
+    if (config.chargerSimulator) {
+      chargerSimulator.startSimulation();
+    } else {
+      console.log('[ChargerSimulator] Off. Set CHARGER_SIMULATOR=true to simulate DEMO-mode chargers.');
+    }
   });
 }
 

@@ -9,7 +9,7 @@ function generateChargerAuthKey() {
   return `ck_${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
 }
 
-export default function EditChargerModal({ isOpen, onClose, charger, societyId, showToast, onSuccess }) {
+export default function EditChargerModal({ isOpen, onClose, charger, societyId, showToast, onSuccess, demoMode = false }) {
   const [formData, setFormData] = useState({
     charger_number: '',
     name: '',
@@ -54,11 +54,11 @@ export default function EditChargerModal({ isOpen, onClose, charger, societyId, 
         power_rating_kw: 7.4,
         price_per_kwh: 8.0,
         parking_location: '',
-        integration_mode: 'DEMO',
+        integration_mode: demoMode ? 'DEMO' : 'PRODUCTION',
         auth_key: generateChargerAuthKey(),
       });
     }
-  }, [charger, isOpen]);
+  }, [charger, isOpen, demoMode]);
 
   if (!isOpen) return null;
 

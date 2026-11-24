@@ -1,0 +1,31 @@
+# Dependencies are installed inside the image, so native modules
+# like better-sqlite3 are built for Linux, not copied from Windows/macOS
+node_modules
+**/node_modules
+
+# Frontends are rebuilt inside the image
+admin-dashboard/dist
+resident-app/dist
+
+# Secrets: set these as environment variables on the host instead
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local database: the server creates and migrates its own on first start
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+server/data/*.db-journal
+
+# Local tools, logs and editor files
+.git
+.claude
+.vscode
+.idea
+cloudflared.exe
+start-tunnel.ps1
+tunnel.log
+*.log

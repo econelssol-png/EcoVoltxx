@@ -2302,6 +2302,7 @@ export default function App() {
         societyId={selectedSocietyId}
         showToast={showToast}
         onSuccess={() => fetchData()}
+        demoMode={demoMode}
       />
 
       {/* MODAL: CHARGER DIAGNOSTICS & REMOTE COMMANDS */}

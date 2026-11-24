@@ -22,6 +22,7 @@ const { requireSocietyAdmin } = require('../middleware/rbac');
 const { enforceTenantIsolation } = require('../middleware/tenantIsolation');
 const ocppService = require('../services/ocppService');
 const chargerIntegrationService = require('../services/chargerIntegrationService');
+const config = require('../config');
 const crypto = require('crypto');
 
 // Charger OCPP auth keys are secrets: only society admins and super admins may see them
@@ -202,11 +203,21 @@ router.get('/:chargerId', authenticate, enforceTenantIsolation, async (req, res)
 router.post('/', authenticate, enforceTenantIsolation, requireSocietyAdmin, async (req, res) => {
   try {
     const {
-      charger_number, name, location_description, parking_location,
-      connector_type, power_rating_kw, price_per_kwh,
-      vendor, manufacturer, model, ocpp_version, integration_mode,
+      charger_number, name, location_description,
+      connector_type, price_per_kwh,
+      vendor, manufacturer, model, ocpp_version,
       connector_count = 1, auth_key,
     } = req.body;
+
+    // The dashboard's quick "Add charger" form sends power_output_kw / parking_slot
+    const power_rating_kw = parseFloat(req.body.power_rating_kw ?? req.body.power_output_kw) || null;
+    const parking_location = req.body.parking_location || req.body.parking_slot || null;
+
+    // New chargers are real hardware unless the server runs in demo mode
+    const requestedMode = String(req.body.integration_mode || '').toUpperCase();
+    const integration_mode = ['DEMO', 'PRODUCTION'].includes(requestedMode)
+      ? requestedMode
+      : (config.demoMode ? 'DEMO' : 'PRODUCTION');
 
     if (!charger_number) {
       return res.status(400).json({ error: 'Charger number is required' });
@@ -236,7 +247,7 @@ router.post('/', authenticate, enforceTenantIsolation, requireSocietyAdmin, asyn
       vendor: vendor || manufacturer || 'Schneider Electric',
       model: model || 'EVlink Pro AC',
       ocpp_version: ocpp_version || '1.6J',
-      integration_mode: integration_mode || 'DEMO',
+      integration_mode,
       connector_count: parseInt(connector_count, 10) || 1,
       auth_key: auth_key || generateChargerAuthKey(),
       status: 'available',

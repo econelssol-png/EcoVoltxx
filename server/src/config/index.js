@@ -28,6 +28,10 @@ const config = {
   // On by default in development, off by default in production (DEMO_MODE=true to force on).
   demoMode: parseBool(process.env.DEMO_MODE, !isProduction),
 
+  // Charger simulator: advances simulated (DEMO-mode) charging sessions.
+  // Follows DEMO_MODE unless CHARGER_SIMULATOR is set explicitly.
+  chargerSimulator: parseBool(process.env.CHARGER_SIMULATOR, parseBool(process.env.DEMO_MODE, !isProduction)),
+
   // First super admin for a fresh production database (demo mode off)
   superAdminEmail: (process.env.SUPERADMIN_EMAIL || '').trim().toLowerCase(),
   superAdminPassword: process.env.SUPERADMIN_PASSWORD || '',
