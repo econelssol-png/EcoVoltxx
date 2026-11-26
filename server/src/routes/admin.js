@@ -175,13 +175,44 @@ router.put('/societies/:id', async (req, res) => {
       return res.status(404).json({ error: 'Society not found' });
     }
 
-    const allowedFields = ['name', 'address', 'city', 'state', 'pincode', 'description', 'status', 'default_price_per_kwh', 'max_chargers'];
     const updates = {};
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
-      }
+    const text = (v) => (typeof v === 'string' ? v.trim() : v);
+
+    if (req.body.name !== undefined) {
+      const name = text(req.body.name);
+      if (!name) return res.status(400).json({ error: 'Society name is required' });
+      updates.name = name;
     }
+
+    // Join code: residents type this to join, so keep it short, simple and unique
+    if (req.body.code !== undefined) {
+      const code = String(req.body.code || '').trim().toUpperCase();
+      if (!/^[A-Z0-9-]{3,20}$/.test(code)) {
+        return res.status(400).json({ error: 'Join code must be 3-20 letters, numbers or dashes' });
+      }
+      if (code !== society.code) {
+        const taken = await db('societies').where({ code }).whereNot({ id: society.id }).first();
+        if (taken) return res.status(409).json({ error: 'That join code is already used by another society' });
+      }
+      updates.code = code;
+    }
+
+    for (const field of ['address', 'city', 'state', 'pincode', 'description']) {
+      if (req.body[field] !== undefined) updates[field] = text(req.body[field]) || null;
+    }
+
+    if (req.body.default_price_per_kwh !== undefined) {
+      const price = parseFloat(req.body.default_price_per_kwh);
+      if (!Number.isFinite(price) || price <= 0 || price > 100) {
+        return res.status(400).json({ error: 'Rate must be a number between 0 and 100 (₹ per kWh)' });
+      }
+      updates.default_price_per_kwh = price;
+    }
+
+    for (const field of ['status', 'max_chargers']) {
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
+    }
+
     updates.updated_at = db.fn.now();
 
     await db('societies').where({ id: society.id }).update(updates);

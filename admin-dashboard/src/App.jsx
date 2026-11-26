@@ -44,6 +44,7 @@ import ChargerDiagnosticsModal from './components/ChargerDiagnosticsModal';
 import RefundModal from './components/RefundModal';
 import LoginScreen from './components/LoginScreen';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import EditSocietyModal from './components/EditSocietyModal';
 import EditChargerModal from './components/EditChargerModal';
 import ReceiptModal from './components/ReceiptModal';
 
@@ -94,6 +95,7 @@ export default function App() {
   const [showAssignAdminModal, setShowAssignAdminModal] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [selectedSocietyForAdmin, setSelectedSocietyForAdmin] = useState(null);
+  const [societyToEdit, setSocietyToEdit] = useState(null);
 
   // Notification / Alert message
   const [toast, setToast] = useState(null);
@@ -1118,7 +1120,7 @@ export default function App() {
                             ₹{soc.price_monthly ? soc.price_monthly.toLocaleString() : (soc.id === 1 ? '4,999' : '1,999')}
                           </td>
                           <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                            {soc.chargers_count ?? 3} / {soc.charger_limit ?? (soc.id === 1 ? 10 : 3)}
+                            {soc.chargers_count ?? 0} / {soc.charger_limit ?? '—'}
                           </td>
                           <td style={{ fontSize: '0.82rem' }}>
                             {new Date(soc.renews_at || Date.now() + 25 * 86400000).toLocaleDateString()}
@@ -2085,8 +2087,8 @@ export default function App() {
                             </span>
                           </td>
                           <td>{soc.city ? `${soc.city}, ${soc.state}` : 'Bengaluru, KA'}</td>
-                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{soc.stats?.chargers ?? 3}</td>
-                          <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{soc.stats?.members ?? 5}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{soc.stats?.chargers ?? 0}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{soc.stats?.members ?? 0}</td>
                           <td>
                             <span className="badge" style={{ background: 'rgba(237, 237, 237, 0.06)', color: 'var(--accent)' }}>
                               {soc.id === 1 ? 'Pro (₹4,999)' : 'Starter (₹1,999)'}
@@ -2112,12 +2114,18 @@ export default function App() {
                               </button>
                               <button
                                 className="btn btn-outline btn-sm"
+                                onClick={() => setSocietyToEdit(soc)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="btn btn-outline btn-sm"
                                 onClick={() => {
                                   setSelectedSocietyForAdmin(soc);
                                   setShowAssignAdminModal(true);
                                 }}
                               >
-                                Assign Admin
+                                Assign admin
                               </button>
                             </div>
                           </td>
@@ -2322,6 +2330,13 @@ export default function App() {
         showToast={showToast}
         onSuccess={() => fetchData()}
         demoMode={demoMode}
+      />
+
+      <EditSocietyModal
+        society={societyToEdit}
+        onClose={() => setSocietyToEdit(null)}
+        onSaved={() => fetchData()}
+        showToast={showToast}
       />
 
       <ChangePasswordModal
