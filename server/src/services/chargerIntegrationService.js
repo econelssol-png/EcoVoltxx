@@ -11,6 +11,29 @@ const chargerSimulator = require('./chargerSimulator');
 
 class ChargerIntegrationService {
   /**
+   * Status to show residents, visitors and admins. A hardware (PRODUCTION)
+   * charger that is not connected over OCPP cannot charge, so it is offline
+   * no matter what the stored status says.
+   */
+  liveStatus(charger) {
+    if (
+      charger &&
+      charger.integration_mode === 'PRODUCTION' &&
+      charger.status === 'available' &&
+      !ocppService.isChargerConnected(charger.id)
+    ) {
+      return 'offline';
+    }
+    return charger?.status;
+  }
+
+  /** Chargers in a society that can actually start a session right now */
+  async countAvailable(societyId) {
+    const rows = await db('chargers').where({ society_id: societyId }).select('id', 'status', 'integration_mode');
+    return rows.filter((c) => this.liveStatus(c) === 'available').length;
+  }
+
+  /**
    * Start charging session on a charger (dispatches based on integration_mode)
    */
   async startSession({ chargerId, societyId, userId, bookingId }) {

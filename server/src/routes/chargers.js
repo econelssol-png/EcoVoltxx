@@ -60,6 +60,7 @@ router.get('/', authenticate, enforceTenantIsolation, async (req, res) => {
 
         return {
           ...(canSeeChargerSecrets(req) ? c : stripChargerSecrets(c)),
+          status: chargerIntegrationService.liveStatus(c),
           connectors,
           is_ocpp_connected: isConnected,
           connection_info: connInfo,
@@ -186,6 +187,7 @@ router.get('/:chargerId', authenticate, enforceTenantIsolation, async (req, res)
     res.json({
       charger: {
         ...(canSeeChargerSecrets(req) ? charger : stripChargerSecrets(charger)),
+        status: chargerIntegrationService.liveStatus(charger),
         is_ocpp_connected: isConnected,
         connection_info: connInfo,
       },

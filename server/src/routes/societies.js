@@ -11,6 +11,7 @@
 
 const express = require('express');
 const db = require('../db/knex');
+const chargerIntegrationService = require('../services/chargerIntegrationService');
 const { authenticate } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
 const { enforceTenantIsolation } = require('../middleware/tenantIsolation');
@@ -103,7 +104,7 @@ router.get('/:id', authenticate, enforceTenantIsolation, async (req, res) => {
 
     // Get stats
     const chargerCount = await db('chargers').where({ society_id: society.id }).count('id as count').first();
-    const availableChargers = await db('chargers').where({ society_id: society.id, status: 'available' }).count('id as count').first();
+    const availableChargers = { count: await chargerIntegrationService.countAvailable(society.id) };
     const memberCount = await db('society_members').where({ society_id: society.id, status: 'approved' }).count('id as count').first();
     const activeSessions = await db('charging_sessions').where({ society_id: society.id, status: 'active' }).count('id as count').first();
 

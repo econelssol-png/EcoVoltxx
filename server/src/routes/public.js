@@ -1,19 +1,50 @@
 /**
- * 24/7 Open Public Charging API Routes for EcoVoltX
- * Powered by EcoNelssol
- * 
- * Allows anyone (visitors, guests, general public) to discover chargers,
- * check real-time availability, and start charging 24/7 without registration.
+ * Public (visitor) charging API for EcoVoltX
+ *
+ * Visitors can find chargers and charge without an account.
+ *
+ * - Charger status is the live status: a hardware charger that is not
+ *   connected shows as offline and cannot be started.
+ * - Sessions start and stop through the same integration service residents
+ *   use, so hardware chargers get real OCPP start/stop commands.
+ * - Starting returns a secret stop_token. Reading or stopping that session
+ *   requires it, so nobody can stop someone else's charging.
+ * - Visitor accounts get random passwords: nobody can sign in as a visitor.
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const db = require('../db/knex');
-const chargerSimulator = require('../services/chargerSimulator');
+const chargerIntegrationService = require('../services/chargerIntegrationService');
 
 const router = express.Router();
 
-// ── GET All 24/7 Public Chargers ─────────────────────────
+const PHONE_RE = /^[6-9]\d{9}$/; // Indian mobile number, 10 digits
+const PLATE_RE = /^[A-Z0-9 -]{4,15}$/;
+
+function safeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
+}
+
+/** Find the visitor session for session_id + stop_token, or null */
+async function findGuestSession(sessionId, stopToken) {
+  const id = parseInt(sessionId, 10);
+  if (!id || !stopToken) return null;
+  const session = await db('charging_sessions').where({ id }).first();
+  if (!session || !session.guest_token || !safeEqual(session.guest_token, String(stopToken))) return null;
+  return session;
+}
+
+function publicSession(session) {
+  const { guest_token, ...rest } = session;
+  return rest;
+}
+
+// ── GET all public chargers ──────────────────────────────
 router.get('/chargers', async (req, res) => {
   try {
     const chargers = await db('chargers')
@@ -26,19 +57,17 @@ router.get('/chargers', async (req, res) => {
         'societies.city as society_city',
         'societies.state as society_state'
       )
-      .orderBy('chargers.status', 'asc');
+      .orderBy('chargers.charger_number', 'asc');
 
-    // Add public metadata (never expose the charger's OCPP auth key)
+    // Never expose the charger's OCPP auth key; show the live status
     const publicChargers = chargers.map(({ auth_key, ...c }) => ({
       ...c,
+      status: chargerIntegrationService.liveStatus(c),
       is_public: true,
-      access_hours: '24/7 Open Access',
       public_rate_per_kwh: c.price_per_kwh,
     }));
 
     res.json({
-      title: '24/7 Public Charging Network',
-      powered_by: 'EcoNelssol',
       count: publicChargers.length,
       available_count: publicChargers.filter((c) => c.status === 'available').length,
       chargers: publicChargers,
@@ -49,114 +78,127 @@ router.get('/chargers', async (req, res) => {
   }
 });
 
-// ── POST Instant 24/7 Guest Charge Start ─────────────────
+// ── POST start a visitor charging session ────────────────
 router.post('/charge/start', async (req, res) => {
   try {
-    const { charger_id, phone = '9876543210', vehicle_number = 'KA-01-EV-1234', driver_name = 'Public Guest' } = req.body;
+    const chargerId = parseInt(req.body.charger_id, 10);
+    const phone = String(req.body.phone || '').replace(/\D/g, '').slice(-10);
+    const vehicle = String(req.body.vehicle_number || '').trim().toUpperCase();
+    const driverName = String(req.body.driver_name || '').trim().slice(0, 60) || 'Visitor';
 
-    if (!charger_id) {
-      return res.status(400).json({ error: 'Charger ID is required' });
+    if (!chargerId) return res.status(400).json({ error: 'Choose a charger' });
+    if (!PHONE_RE.test(phone)) return res.status(400).json({ error: 'Enter a valid 10-digit mobile number' });
+    if (!PLATE_RE.test(vehicle)) return res.status(400).json({ error: 'Enter your vehicle registration number' });
+
+    const charger = await db('chargers').where({ id: chargerId }).first();
+    if (!charger) return res.status(404).json({ error: 'Charger not found' });
+
+    const status = chargerIntegrationService.liveStatus(charger);
+    if (status !== 'available') {
+      return res.status(409).json({ error: `Charger ${charger.charger_number} is ${status === 'offline' ? 'offline' : `currently ${status}`}` });
     }
 
-    const charger = await db('chargers').where({ id: charger_id }).first();
-    if (!charger) {
-      return res.status(404).json({ error: 'Charger not found' });
-    }
-
-    if (charger.status !== 'available') {
-      return res.status(409).json({ error: `Charger is currently ${charger.status}` });
-    }
-
-    // Find or create guest user
-    const guestEmail = `guest_${phone.replace(/\D/g, '').slice(-10)}@ecovoltx.public`;
+    // Find or create the visitor account (random password: nobody signs in as a visitor)
+    const guestEmail = `guest_${phone}@ecovoltx.public`;
     let user = await db('users').where({ email: guestEmail }).first();
-
     if (!user) {
-      const defaultHash = await bcrypt.hash('Guest@123', 10);
+      const unusableHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
       const [userId] = await db('users').insert({
         email: guestEmail,
         phone,
-        name: `${driver_name} (${vehicle_number})`,
-        password_hash: defaultHash,
+        name: `${driverName} (${vehicle})`,
+        password_hash: unusableHash,
         role: 'user',
       });
       user = await db('users').where({ id: userId }).first();
+    }
 
-      // Auto-assign as guest member to society
+    const existingMembership = await db('society_members')
+      .where({ user_id: user.id, society_id: charger.society_id })
+      .first();
+    if (!existingMembership) {
       await db('society_members').insert({
         user_id: user.id,
         society_id: charger.society_id,
-        flat_number: '24/7 Guest',
+        flat_number: 'Visitor',
         role: 'resident',
         status: 'approved',
       });
     }
 
-    // Start session
-    const startTime = new Date().toISOString();
-    const [sessionId] = await db('charging_sessions').insert({
-      user_id: user.id,
-      charger_id: charger.id,
-      society_id: charger.society_id,
-      start_time: startTime,
-      energy_kwh: 0,
-      cost: 0,
-      price_per_kwh_at_time: charger.price_per_kwh || 8.0,
-      power_rating_kw_at_time: charger.power_rating_kw || 7.4,
-      is_simulated: charger.is_simulated !== undefined ? charger.is_simulated : 1,
-      status: 'active',
-    });
+    // Same path as residents: simulator for DEMO chargers, OCPP for hardware
+    let session;
+    try {
+      session = await chargerIntegrationService.startSession({
+        chargerId: charger.id,
+        societyId: charger.society_id,
+        userId: user.id,
+      });
+    } catch (err) {
+      return res.status(409).json({ error: err.message.replace(/^PRODUCTION ERROR: /, '') });
+    }
 
-    // Start simulated charging
-    await chargerSimulator.startCharging(sessionId);
+    const stopToken = crypto.randomBytes(24).toString('hex');
+    await db('charging_sessions').where({ id: session.id }).update({ guest_token: stopToken });
 
-    const session = await db('charging_sessions').where({ id: sessionId }).first();
     const { auth_key, ...publicCharger } = charger;
-
     res.status(201).json({
-      message: '24/7 Public Charging Started!',
-      session,
+      message: 'Charging started',
+      session: publicSession(session),
+      stop_token: stopToken,
       charger: { ...publicCharger, status: 'charging' },
-      user: { name: user.name, phone },
     });
   } catch (err) {
     console.error('Public charge start error:', err);
-    res.status(500).json({ error: 'Failed to start public charging: ' + (err.message || err) });
+    res.status(500).json({ error: 'Could not start charging' });
   }
 });
 
-// ── POST Instant 24/7 Guest Charge Stop ──────────────────
+// ── GET live status of a visitor session (needs its stop_token) ──
+router.get('/charge/status', async (req, res) => {
+  try {
+    const session = await findGuestSession(req.query.session_id, req.query.stop_token);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    res.json({ session: publicSession(session) });
+  } catch (err) {
+    console.error('Public charge status error:', err);
+    res.status(500).json({ error: 'Could not load the session' });
+  }
+});
+
+// ── POST stop a visitor session (needs its stop_token) ───
 router.post('/charge/stop', async (req, res) => {
   try {
-    const { session_id } = req.body;
-    if (!session_id) {
-      return res.status(400).json({ error: 'Session ID is required' });
+    const session = await findGuestSession(req.body.session_id, req.body.stop_token);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (session.status !== 'active') return res.status(409).json({ error: 'This session has already ended' });
+
+    let completed;
+    try {
+      completed = await chargerIntegrationService.stopSession({
+        sessionId: session.id,
+        societyId: session.society_id,
+        userId: session.user_id,
+        reason: 'Visitor stopped charging',
+      });
+    } catch (err) {
+      return res.status(503).json({ error: err.message.replace(/^PRODUCTION ERROR: /, '') });
     }
 
-    const session = await db('charging_sessions').where({ id: session_id }).first();
-    if (!session || session.status !== 'active') {
-      return res.status(404).json({ error: 'Active session not found' });
-    }
-
-    // Stop simulated charging
-    await chargerSimulator.stopCharging(session.id, 'User stopped 24/7 session');
-
-    const completed = await db('charging_sessions').where({ id: session.id }).first();
-    const charger = await db('chargers').where({ id: completed.charger_id }).first();
-
+    completed = await db('charging_sessions').where({ id: session.id }).first();
     res.json({
-      message: '24/7 Public Charging Completed!',
-      session: completed,
+      message: 'Charging stopped',
+      session: publicSession(completed),
       receipt: {
-        energy_kwh: completed.energy_kwh,
-        total_cost: completed.cost,
-        rate: completed.price_per_kwh_at_time || charger?.price_per_kwh || 8.0,
-        status: 'PAID (Mock Gateway)',
+        energy_kwh: Number(completed.energy_kwh || 0),
+        amount_due: Number(completed.cost || 0),
+        rate: Number(completed.price_per_kwh_at_time || 0),
+        payment_status: 'due',
       },
     });
   } catch (err) {
     console.error('Public charge stop error:', err);
-    res.status(500).json({ error: 'Failed to stop public charging: ' + (err.message || err) });
+    res.status(500).json({ error: 'Could not stop charging' });
   }
 });
 

@@ -312,7 +312,7 @@ function renderLanding({ demoMode }) {
           <div class="role">
             <span class="ico">${ICONS.plug}</span>
             <h3>Visitors</h3>
-            <p>Charge at any hour without an account. Pick a free charger, enter a phone number and vehicle plate, and pay by UPI with a receipt.</p>
+            <p>Charge at any hour without an account. Pick a free charger, enter a mobile and vehicle number, and get a receipt with the amount due when you stop.</p>
             <a href="/app/public">Find a public charger ${ICONS.arrow}</a>
           </div>
         </div>

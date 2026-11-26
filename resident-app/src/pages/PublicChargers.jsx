@@ -23,11 +23,23 @@ export default function PublicChargers() {
   const [activeGuestSession, setActiveGuestSession] = useState(null);
   const [showStartModal, setShowStartModal] = useState(false);
   const [selectedCharger, setSelectedCharger] = useState(null);
-  const [guestPhone, setGuestPhone] = useState('9876543210');
-  const [guestVehicle, setGuestVehicle] = useState('KA-01-EV-2024');
-  const [guestName, setGuestName] = useState('Guest Driver');
+  const [guestPhone, setGuestPhone] = useState('');
+  const [guestVehicle, setGuestVehicle] = useState('');
+  const [guestName, setGuestName] = useState('');
+  const [guestToken, setGuestToken] = useState(null);
   const [liveKwh, setLiveKwh] = useState(0);
+  const [liveCost, setLiveCost] = useState(0);
   const [receipt, setReceipt] = useState(null);
+  const [actionError, setActionError] = useState('');
+
+  // The stop token proves this browser started the session; keep it across reloads
+  const SAVED_KEY = 'ecovoltx_visitor_session';
+  const saveSession = (id, token) => {
+    try {
+      if (id && token) localStorage.setItem(SAVED_KEY, JSON.stringify({ id, token }));
+      else localStorage.removeItem(SAVED_KEY);
+    } catch {}
+  };
 
   const fetchPublicChargers = async () => {
     try {
@@ -47,14 +59,48 @@ export default function PublicChargers() {
     return () => clearInterval(interval);
   }, []);
 
-  // Live kWh meter ticker for active guest session
+  // Restore a session this browser started earlier
   useEffect(() => {
-    if (!activeGuestSession) return;
-    const tick = setInterval(() => {
-      setLiveKwh(prev => parseFloat((prev + 0.12).toFixed(2)));
-    }, 1500);
-    return () => clearInterval(tick);
-  }, [activeGuestSession]);
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVED_KEY) || 'null');
+      if (saved?.id && saved?.token) {
+        setActiveGuestSession({ id: saved.id });
+        setGuestToken(saved.token);
+      }
+    } catch {}
+  }, []);
+
+  // Real meter readings from the server (no made-up numbers)
+  useEffect(() => {
+    if (!activeGuestSession || !guestToken) return;
+    let stopped = false;
+    const poll = async () => {
+      try {
+        const qs = new URLSearchParams({ session_id: activeGuestSession.id, stop_token: guestToken });
+        const res = await fetch(`/api/public/charge/status?${qs}`);
+        if (stopped) return;
+        if (res.status === 404) {
+          setActiveGuestSession(null);
+          setGuestToken(null);
+          saveSession(null);
+          return;
+        }
+        const data = await res.json();
+        if (!res.ok || !data.session) return;
+        setLiveKwh(Number(data.session.energy_kwh || 0));
+        setLiveCost(Number(data.session.cost || 0));
+        if (data.session.status !== 'active') {
+          setActiveGuestSession(null);
+          setGuestToken(null);
+          saveSession(null);
+          fetchPublicChargers();
+        }
+      } catch {}
+    };
+    poll();
+    const timer = setInterval(poll, 5000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [activeGuestSession, guestToken]);
 
   const handleStartPublicCharge = async (e) => {
     e.preventDefault();
@@ -73,14 +119,18 @@ export default function PublicChargers() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to start charge');
+      if (!res.ok) throw new Error(data.error || 'Could not start charging');
 
       setActiveGuestSession(data.session);
+      setGuestToken(data.stop_token);
+      saveSession(data.session.id, data.stop_token);
       setShowStartModal(false);
-      setLiveKwh(0.8);
+      setActionError('');
+      setLiveKwh(0);
+      setLiveCost(0);
       fetchPublicChargers();
     } catch (err) {
-      alert(err.message);
+      setActionError(err.message);
     }
   };
 
@@ -90,14 +140,18 @@ export default function PublicChargers() {
       const res = await fetch('/api/public/charge/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: activeGuestSession.id }),
+        body: JSON.stringify({ session_id: activeGuestSession.id, stop_token: guestToken }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not stop charging');
       setActiveGuestSession(null);
+      setGuestToken(null);
+      saveSession(null);
+      setActionError('');
       setReceipt(data.receipt);
       fetchPublicChargers();
     } catch (err) {
-      alert(err.message);
+      setActionError(err.message);
     }
   };
 
@@ -134,9 +188,13 @@ export default function PublicChargers() {
           Charge without an account
         </h3>
         <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          No society registration or admin approval. Pick a free charger, enter your phone number and vehicle plate, then pay by UPI when you stop.
+          No society registration or admin approval. Pick a free charger and enter your mobile and vehicle number. When you stop, you get a receipt with the amount due.
         </p>
       </div>
+
+      {actionError && (
+        <div className="error-message" role="alert">{actionError}</div>
+      )}
 
       {/* Active Guest Charging Session Widget */}
       {activeGuestSession && (
@@ -160,13 +218,13 @@ export default function PublicChargers() {
             <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '8px' }}>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Energy delivered</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                {liveKwh} <span style={{ fontSize: '0.8rem' }}>kWh</span>
+                {liveKwh.toFixed(3)} <span style={{ fontSize: '0.8rem' }}>kWh</span>
               </div>
             </div>
             <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Estimated cost</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Cost so far</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 500, color: '#8fe3b0', fontFamily: 'var(--font-mono)' }}>
-                ₹{(liveKwh * 8.0).toFixed(2)}
+                ₹{liveCost.toFixed(2)}
               </div>
             </div>
           </div>
@@ -176,7 +234,7 @@ export default function PublicChargers() {
             onClick={handleStopPublicCharge}
             style={{ fontWeight: 500 }}
           >
-            <Square size={16} fill="white" /> Stop & Finalize Public Charge
+            <Square size={16} strokeWidth={1.5} /> Stop charging
           </button>
         </div>
       )}
@@ -193,14 +251,14 @@ export default function PublicChargers() {
         }}>
           <CheckCircle size={36} color="#00A651" style={{ margin: '0 auto 10px' }} />
           <h4 style={{ color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 500 }}>Charging complete</h4>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '14px' }}>UPI receipt from EcoVoltX</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '14px' }}>Visitor charging receipt</p>
           <div style={{ background: 'var(--bg-surface)', padding: '14px', borderRadius: '8px', marginBottom: '14px', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
             <div>Total energy <strong>{receipt.energy_kwh} kWh</strong></div>
-            <div style={{ color: '#00A651', fontSize: '1.2rem', fontWeight: 500, margin: '6px 0' }}>Paid: ₹{receipt.total_cost}</div>
+            <div style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: 500, margin: '6px 0' }}>Amount due: ₹{Number(receipt.amount_due ?? receipt.total_cost ?? 0).toFixed(2)}</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rate: ₹{receipt.rate}/kWh</div>
           </div>
           <button className="btn btn-primary btn-block" onClick={() => setReceipt(null)}>
-            Close Receipt
+            Close receipt
           </button>
         </div>
       )}
@@ -310,19 +368,21 @@ export default function PublicChargers() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Phone number for the SMS receipt</label>
+                <label className="form-label">Mobile number</label>
                 <input
                   type="tel"
                   className="form-input"
                   value={guestPhone}
                   onChange={e => setGuestPhone(e.target.value)}
-                  placeholder="e.g. 9876543210"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="10-digit mobile number"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Vehicle registration plate</label>
+                <label className="form-label">Vehicle registration number</label>
                 <input
                   className="form-input"
                   value={guestVehicle}
@@ -335,9 +395,9 @@ export default function PublicChargers() {
               <button
                 type="submit"
                 className="btn btn-primary btn-block"
-                style={{ background: '#00A651', borderColor: '#00A651', marginTop: '10px' }}
+                style={{ marginTop: '10px' }}
               >
-                <Zap size={16} /> Connect & Begin 24/7 Charging
+                <Zap size={16} strokeWidth={1.5} /> Start charging
               </button>
             </form>
           </div>
