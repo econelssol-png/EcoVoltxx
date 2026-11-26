@@ -1645,7 +1645,7 @@ export default function App() {
                       {residents.filter(r => r.status === 'pending').length === 0 && (
                         <tr>
                           <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                            No pending join requests! All residents are approved.
+                            No one is waiting for approval
                           </td>
                         </tr>
                       )}

@@ -174,9 +174,12 @@ router.post('/:id/join', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Society not found or inactive' });
     }
 
-    // Verify code if provided
-    if (code && code.toUpperCase() !== society.code) {
-      return res.status(400).json({ error: 'Invalid society code' });
+    // The join code is required: it shows the resident got it from the society
+    if (!code || String(code).trim().toUpperCase() !== society.code) {
+      return res.status(400).json({ error: 'That join code does not match this society' });
+    }
+    if (!flat_number || !String(flat_number).trim()) {
+      return res.status(400).json({ error: 'Enter your flat number so the society admin can recognise you' });
     }
 
     // Check if already a member
@@ -196,13 +199,13 @@ router.post('/:id/join', authenticate, async (req, res) => {
       }
     }
 
-    // Create membership (auto-approve if code matches, otherwise pending)
-    const status = code ? 'approved' : 'pending';
+    // Every join waits for a society admin (or super admin) to approve it
+    const status = 'pending';
 
     const [id] = await db('society_members').insert({
       user_id: req.user.id,
       society_id: societyId,
-      flat_number: flat_number || null,
+      flat_number: String(flat_number).trim(),
       role: 'resident',
       status,
       joined_at: status === 'approved' ? new Date().toISOString() : null,
@@ -210,16 +213,20 @@ router.post('/:id/join', authenticate, async (req, res) => {
 
     // Create notification for admins if pending
     if (status === 'pending') {
-      const admins = await db('society_members')
+      let admins = await db('society_members')
         .where({ society_id: societyId, role: 'admin', status: 'approved' })
         .select('user_id');
+      // No society admin yet: tell the super admins instead
+      if (admins.length === 0) {
+        admins = (await db('users').where({ role: 'super_admin', is_active: true }).select('id')).map((u) => ({ user_id: u.id }));
+      }
 
       for (const admin of admins) {
         await db('notifications').insert({
           user_id: admin.user_id,
           society_id: societyId,
-          title: 'New Membership Request',
-          message: `${req.user.name} has requested to join ${society.name}`,
+          title: 'New join request',
+          message: `${req.user.name} (flat ${String(flat_number).trim()}) wants to join ${society.name}`,
           type: 'membership_request',
         });
       }
@@ -229,8 +236,8 @@ router.post('/:id/join', authenticate, async (req, res) => {
     res.status(201).json({
       membership,
       message: status === 'approved'
-        ? 'Successfully joined the society'
-        : 'Membership request submitted. Waiting for admin approval.',
+        ? 'You have joined the society'
+        : 'Request sent. You can use the app once the society admin approves you.',
     });
   } catch (err) {
     console.error('Join society error:', err);

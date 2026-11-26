@@ -72,7 +72,7 @@ router.put('/residents/:userId', authenticate, enforceTenantIsolation, requireSo
         user_id: userId,
         society_id: req.societyId,
         title: 'Membership Approved',
-        message: `Your membership to ${req.society.name} has been approved!`,
+        message: `Your membership to ${req.society.name} has been approved. You can start charging now`,
         type: 'membership_approved',
       });
     }
