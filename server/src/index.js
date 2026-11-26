@@ -120,9 +120,12 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
+// General API limit per client address. One admin dashboard refresh makes
+// about a dozen requests, and residents on a society's shared Wi-Fi share
+// one address, so this needs headroom. Sign-in has its own stricter limit.
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  max: parseInt(process.env.API_RATE_LIMIT, 10) || 1000,
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,

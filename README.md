@@ -59,6 +59,7 @@ Set these as environment variables on the host, or in `server/.env` locally. `se
 | `DB_PATH` | no | SQLite file; keep it on a persistent volume |
 | `CORS_ORIGIN` | no | Your public address, like `https://ecovoltx.example.com` |
 | `CHARGER_SIMULATOR` | no | Simulated charging sessions; follows `DEMO_MODE` |
+| `API_RATE_LIMIT` | no | API requests per client address per 15 minutes; defaults to 1000. Sign-in stays limited to 30 attempts |
 | `PAYMENT_MODE` | no | `mock` (default without keys), `test` or `live` |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | for payments | Razorpay API keys |
 | `RAZORPAY_WEBHOOK_SECRET` | for payments | Webhooks are refused until this is set |
