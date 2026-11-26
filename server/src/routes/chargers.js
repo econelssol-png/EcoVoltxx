@@ -82,9 +82,20 @@ router.get('/integration/config', authenticate, enforceTenantIsolation, requireS
       .where({ society_id: req.societyId })
       .first();
 
+    // Chargers must use wss:// when the site is served over HTTPS (as on Railway)
+    const host = req.get('host') || 'localhost:3000';
+    const scheme = req.protocol === 'https' ? 'wss' : 'ws';
+
+    if (config && req.protocol === 'https' && /^ws:\/\//i.test(config.ocpp_server_ws_url || '')) {
+      await db('charger_integration_configs').where({ id: config.id }).update({
+        ocpp_server_ws_url: config.ocpp_server_ws_url.replace(/^ws:\/\//i, 'wss://'),
+        updated_at: db.fn.now(),
+      });
+      config = await db('charger_integration_configs').where({ id: config.id }).first();
+    }
+
     if (!config) {
-      const host = req.get('host') || 'localhost:3000';
-      const wsUrl = `ws://${host}/ocpp`;
+      const wsUrl = `${scheme}://${host}/ocpp`;
       const [id] = await db('charger_integration_configs').insert({
         society_id: req.societyId,
         ocpp_server_ws_url: wsUrl,

@@ -14,6 +14,11 @@ import {
 } from 'lucide-react';
 import adminApi from '../services/api';
 
+// Chargers connect over wss:// when the portal is served over HTTPS (as on Railway)
+const DEFAULT_OCPP_URL = import.meta.env.DEV
+  ? 'ws://localhost:3000/ocpp'
+  : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ocpp`;
+
 export default function ChargerConfigTab({ societyId, showToast }) {
   const [config, setConfig] = useState(null);
   const [chargers, setChargers] = useState([]);
@@ -35,7 +40,7 @@ export default function ChargerConfigTab({ societyId, showToast }) {
       ]);
 
       setConfig(cfgRes.config || {
-        ocpp_server_ws_url: 'ws://localhost:3000/ocpp',
+        ocpp_server_ws_url: DEFAULT_OCPP_URL,
         heartbeat_interval_seconds: 60,
         connection_timeout_seconds: 30,
         default_mode: 'DEMO',
@@ -68,7 +73,7 @@ export default function ChargerConfigTab({ societyId, showToast }) {
   };
 
   const selectedChargerObj = chargers.find(c => c.charger_number === selectedChargerForUrl);
-  const connectionUrl = `${config?.ocpp_server_ws_url || 'ws://localhost:3000/ocpp'}/${selectedChargerForUrl || 'C-01'}${selectedChargerObj?.auth_key ? `?token=${selectedChargerObj.auth_key}` : ''}`;
+  const connectionUrl = `${config?.ocpp_server_ws_url || DEFAULT_OCPP_URL}/${selectedChargerForUrl || 'C-01'}${selectedChargerObj?.auth_key ? `?token=${selectedChargerObj.auth_key}` : ''}`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(connectionUrl);
@@ -132,7 +137,7 @@ export default function ChargerConfigTab({ societyId, showToast }) {
                 className="form-input"
                 value={config?.ocpp_server_ws_url || ''}
                 onChange={e => setConfig({ ...config, ocpp_server_ws_url: e.target.value })}
-                placeholder="ws://localhost:3000/ocpp or wss://chargenest.yourdomain.com/ocpp"
+                placeholder={DEFAULT_OCPP_URL}
                 required
               />
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>

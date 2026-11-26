@@ -257,6 +257,38 @@ class OcppService {
   }
 
   /**
+   * Resolve an OCPP idTag to the user to bill. The app starts sessions with
+   * idTag "USR_<userId>"; the user must be an active, approved member of the
+   * charger's society. Anything else (unknown RFID cards, free-vend) returns null.
+   */
+  async resolveIdTag(idTag, societyId) {
+    const match = /^USR_(\d+)$/.exec(String(idTag || ''));
+    if (!match) return null;
+    const user = await db('users').where({ id: parseInt(match[1], 10), is_active: true }).first();
+    if (!user) return null;
+    const member = await db('society_members')
+      .where({ user_id: user.id, society_id: societyId, status: 'approved' })
+      .first();
+    return member ? user : null;
+  }
+
+  async logRejectedTag(chargerId, societyId, idTag, action) {
+    try {
+      await db('integration_logs').insert({
+        society_id: societyId,
+        charger_id: chargerId,
+        type: 'ocpp_event',
+        level: 'warn',
+        source: 'ocpp_server',
+        message: `Refused unknown card or tag at the charger (${action}). Start charging from the EcoVoltX app instead`,
+        details: JSON.stringify({ idTag: String(idTag || '').slice(0, 40), action }),
+      });
+    } catch (err) {
+      console.error('[OCPP] Could not log refused tag:', err.message);
+    }
+  }
+
+  /**
    * Handle Inbound CALL actions
    */
   async handleCall(chargerId, societyId, uniqueId, action, payload, ws) {
@@ -348,15 +380,17 @@ class OcppService {
       }
     }
 
-    // 4. Authorize
+    // 4. Authorize: only tags that belong to an approved member of this society
     else if (action === 'Authorize') {
       const { idTag } = payload;
-      // Accept idTag
+      const user = await this.resolveIdTag(idTag, societyId);
+      if (!user) {
+        await this.logRejectedTag(chargerId, societyId, idTag, 'Authorize');
+      }
       this.sendCallResult(ws, uniqueId, {
-        idTagInfo: {
-          status: 'Accepted',
-          expiryDate: new Date(Date.now() + 86400000).toISOString(),
-        },
+        idTagInfo: user
+          ? { status: 'Accepted', expiryDate: new Date(Date.now() + 86400000).toISOString() }
+          : { status: 'Invalid' },
       });
     }
 
@@ -372,14 +406,20 @@ class OcppService {
       const charger = await db('chargers').where({ id: chargerId }).first();
 
       if (!session) {
-        // Find user by idTag or default to admin/first resident
-        const residentMember = await db('society_members')
-          .where({ society_id: societyId, status: 'approved' })
-          .first();
-        const userId = residentMember ? residentMember.user_id : 1;
+        // Started at the charger (not from the app): bill only the owner of the tag.
+        // Unknown tags are refused, so nobody else is billed for this charging.
+        const tagUser = await this.resolveIdTag(idTag, societyId);
+        if (!tagUser) {
+          await this.logRejectedTag(chargerId, societyId, idTag, 'StartTransaction');
+          this.sendCallResult(ws, uniqueId, {
+            transactionId: 0,
+            idTagInfo: { status: 'Invalid' },
+          });
+          return;
+        }
 
         const [sessionId] = await db('charging_sessions').insert({
-          user_id: userId,
+          user_id: tagUser.id,
           society_id: societyId,
           charger_id: chargerId,
           start_time: timestamp || nowIso,
@@ -485,6 +525,13 @@ class OcppService {
     // 7. StopTransaction
     else if (action === 'StopTransaction') {
       const { transactionId, meterStop = 0, timestamp, reason = 'Remote' } = payload;
+
+      // transactionId 0 is the placeholder we return when a tag is refused:
+      // nothing was started, so there is nothing to stop or bill
+      if (transactionId === 0) {
+        this.sendCallResult(ws, uniqueId, { idTagInfo: { status: 'Invalid' } });
+        return;
+      }
 
       let session = null;
       if (transactionId) {

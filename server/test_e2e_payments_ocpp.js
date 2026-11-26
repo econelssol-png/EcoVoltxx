@@ -23,6 +23,8 @@ async function runTests() {
   token = residentLoginData.accessToken;
   societyId = residentLoginData.memberships?.[0]?.society_id || 1;
   console.log(`✓ Resident logged in: ${residentLoginData.user.name} (Society: ${societyId})`);
+  // Chargers only accept tags the app issues: USR_<userId> of an approved member
+  const residentTag = `USR_${residentLoginData.user.id}`;
 
   // 2. Authenticate Admin
   console.log('\n[2] Testing Admin Authentication...');
@@ -311,16 +313,27 @@ async function runTests() {
         });
         console.log('  ✓ StatusNotification handled');
 
+        // D0. Unknown cards are refused and nobody is billed
+        const unknownAuth = await sendCall('Authorize', { idTag: 'RANDOM-CARD-123' });
+        if (unknownAuth.idTagInfo?.status !== 'Invalid') throw new Error('Unknown card was not refused at Authorize');
+        const unknownStart = await sendCall('StartTransaction', { connectorId: 1, idTag: 'RANDOM-CARD-123', meterStart: 12000, timestamp: new Date().toISOString() });
+        if (unknownStart.idTagInfo?.status !== 'Invalid' || unknownStart.transactionId !== 0) {
+          throw new Error(`Unknown card was not refused at StartTransaction: ${JSON.stringify(unknownStart)}`);
+        }
+        await sendCall('StopTransaction', { transactionId: 0, meterStop: 12000, timestamp: new Date().toISOString(), reason: 'DeAuthorized' });
+        console.log('  ✓ Unknown RFID card refused (Authorize and StartTransaction), nothing billed');
+
         // D. Authorize
-        console.log('  Sending Authorize (idTag: TAG-RAHUL-01)...');
-        const authResp = await sendCall('Authorize', { idTag: 'TAG-RAHUL-01' });
+        console.log(`  Sending Authorize (idTag: ${residentTag})...`);
+        const authResp = await sendCall('Authorize', { idTag: residentTag });
+        if (authResp.idTagInfo?.status !== 'Accepted') throw new Error('Resident tag was not accepted');
         console.log(`  ✓ Authorize Response: idTagInfo.status=${authResp.idTagInfo?.status}`);
 
         // E. StartTransaction
         console.log('  Sending StartTransaction...');
         const startResp = await sendCall('StartTransaction', {
           connectorId: 1,
-          idTag: 'TAG-RAHUL-01',
+          idTag: residentTag,
           meterStart: 12500,
           timestamp: new Date().toISOString(),
         });
@@ -349,7 +362,7 @@ async function runTests() {
         console.log('  Sending StopTransaction...');
         const stopResp = await sendCall('StopTransaction', {
           transactionId: startResp.transactionId,
-          idTag: 'TAG-RAHUL-01',
+          idTag: residentTag,
           meterStop: 15100,
           timestamp: new Date().toISOString(),
           reason: 'Local',
