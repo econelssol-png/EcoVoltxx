@@ -310,6 +310,9 @@ async function startServer() {
     } else if (!config.demoMode) {
       await warnAboutDemoAccounts();
     }
+
+    const paymentProblem = require('./services/paymentService').getPaymentSetupProblem();
+    if (paymentProblem) console.warn(`[Payments] ${paymentProblem}`);
   } catch (err) {
     console.error('[DB] Database initialization notice:', err.message);
   }

@@ -16,6 +16,7 @@
 
 const crypto = require('crypto');
 const db = require('../db/knex');
+const config = require('../config');
 
 // Configuration from environment variables
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || '';
@@ -27,6 +28,8 @@ const MOCK_KEY_ID = 'rzp_mock_test_key_ecovolt';
 const MOCK_KEY_SECRET = 'mock_secret_key_ecovolt_charge';
 
 const PLATFORM_NAME = 'EcoVoltX EV Platform';
+const PAYMENTS_OFF_MESSAGE =
+  "Online payment isn't set up yet. Your bill stays due. Pay your society admin directly for now.";
 const PAYABLE_STATUSES = ['pending', 'failed'];
 
 /**
@@ -49,18 +52,39 @@ function isRazorpayConfigured() {
 
 /**
  * Resolve the active payment mode from server configuration only.
- * - 'mock'          : demo provider, no real money (default when no Razorpay keys)
+ * - 'mock'          : demo provider, no real money. Only while DEMO_MODE is on
+ *                     (default there when no Razorpay keys)
  * - 'test'          : Razorpay test keys (default when keys are present)
  * - 'live'          : Razorpay live keys (PAYMENT_MODE=live)
  * - 'misconfigured' : PAYMENT_MODE asks for Razorpay but keys are missing
+ * - 'unavailable'   : DEMO_MODE is off and no Razorpay keys are set. Online
+ *                     payment is off and bills stay due, so nobody can mark a
+ *                     real bill as paid with the demo provider
  */
 function resolvePaymentMode() {
   const configured = isRazorpayConfigured();
-  if (PAYMENT_MODE_ENV === 'mock') return 'mock';
   if (PAYMENT_MODE_ENV === 'live' || PAYMENT_MODE_ENV === 'test') {
     return configured ? PAYMENT_MODE_ENV : 'misconfigured';
   }
-  return configured ? 'test' : 'mock';
+  if (PAYMENT_MODE_ENV === 'mock') return config.demoMode ? 'mock' : 'unavailable';
+  if (configured) return 'test';
+  return config.demoMode ? 'mock' : 'unavailable';
+}
+
+/**
+ * Why online payment is off, for the startup log (null when it works)
+ */
+function getPaymentSetupProblem() {
+  const mode = resolvePaymentMode();
+  if (mode === 'misconfigured') {
+    return `PAYMENT_MODE is "${PAYMENT_MODE_ENV}" but RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are missing. Online payment is off.`;
+  }
+  if (mode === 'unavailable') {
+    return PAYMENT_MODE_ENV === 'mock'
+      ? 'PAYMENT_MODE=mock is ignored while DEMO_MODE is off. Online payment is off until RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are set.'
+      : 'Online payment is off until RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are set. Bills stay due.';
+  }
+  return null;
 }
 
 function isMockModeActive() {
@@ -97,16 +121,18 @@ function getGatewayConfig() {
   if (isMock) description = 'Demo Mode: Mock Payment Provider (No real card/UPI charged)';
   else if (isLive) description = 'Production Mode: Razorpay Live Gateway';
   else if (mode === 'test') description = 'Test Mode: Razorpay Sandbox/Test';
-  else description = 'Payment gateway is not configured. Online payments are unavailable.';
+  else description = PAYMENTS_OFF_MESSAGE;
+
+  const available = mode === 'mock' || mode === 'test' || mode === 'live';
 
   return {
-    provider: isMock ? 'mock' : 'razorpay',
+    provider: isMock ? 'mock' : (available ? 'razorpay' : null),
     mode: isLive ? 'production' : mode,
     is_test: !isLive,
-    key_id: isMock ? MOCK_KEY_ID : (mode === 'misconfigured' ? null : RAZORPAY_KEY_ID),
+    key_id: isMock ? MOCK_KEY_ID : (available ? RAZORPAY_KEY_ID : null),
     currency: 'INR',
     is_live: isLive,
-    available: mode !== 'misconfigured',
+    available,
     description,
   };
 }
@@ -177,11 +203,8 @@ async function createPaymentOrder({ userId, societyId, invoiceId, sessionId, boo
   // The client's requested mode can never downgrade a real gateway to the mock provider.
   const mode = resolvePaymentMode();
 
-  if (mode === 'misconfigured') {
-    throw new PaymentError(
-      `PAYMENT SETUP ERROR: PAYMENT_MODE is "${PAYMENT_MODE_ENV}" but RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are missing. Online payments are disabled until credentials are configured.`,
-      503
-    );
+  if (mode === 'misconfigured' || mode === 'unavailable') {
+    throw new PaymentError(PAYMENTS_OFF_MESSAGE, 503);
   }
 
   const isMock = mode === 'mock';
@@ -411,7 +434,7 @@ async function verifyPaymentSignature({ paymentId, userId, gatewayOrderId, gatew
   let secret;
   if (payment.gateway_provider === 'mock') {
     if (!isMockModeActive()) {
-      throw new PaymentError('Demo payments cannot be completed while a real payment gateway is active', 400);
+      throw new PaymentError('Demo payments cannot be completed on this server', 400);
     }
     secret = MOCK_KEY_SECRET;
   } else {
@@ -698,6 +721,7 @@ module.exports = {
   PaymentError,
   isRazorpayConfigured,
   isMockModeActive,
+  getPaymentSetupProblem,
   getGatewayConfig,
   createPaymentOrder,
   verifyPaymentSignature,

@@ -24,10 +24,17 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
   const [filterMode, setFilterMode] = useState('ALL'); // 'ALL' | 'REAL' | 'TEST'
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [gatewayConfig, setGatewayConfig] = useState(null);
 
   useEffect(() => {
     loadPayments();
   }, [societyId]);
+
+  useEffect(() => {
+    adminApi.getPaymentConfig()
+      .then((res) => setGatewayConfig(res.config))
+      .catch(() => {});
+  }, []);
 
   const loadPayments = async () => {
     setLoading(true);
@@ -107,6 +114,21 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
           </button>
         </div>
       </div>
+
+      {gatewayConfig?.available === false && (
+        <div role="status" className="card" style={{ marginBottom: '24px', display: 'flex', gap: '12px', alignItems: 'flex-start', borderLeft: '4px solid var(--accent-amber)' }}>
+          <AlertTriangle size={18} style={{ color: 'var(--accent-amber)', flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ fontSize: '0.85rem', lineHeight: 1.5 }}>
+            <strong style={{ display: 'block', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '2px' }}>
+              Online payment is off
+            </strong>
+            <span style={{ color: 'var(--text-secondary)' }}>
+              No Razorpay keys are set on the server, so residents can't pay in the app and their bills stay due.
+              Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Railway's variables to switch it on.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Summary Metrics Grid (Rule 10: Clearly identify test transactions and prevent them from being reported as real collections) */}
       <div className="metrics-grid" style={{ marginBottom: '24px' }}>

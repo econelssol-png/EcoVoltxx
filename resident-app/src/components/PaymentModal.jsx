@@ -74,6 +74,9 @@ export default function PaymentModal({
 
   if (!isOpen || !paymentTarget) return null;
 
+  // The server has no payment gateway set up (no Razorpay keys, demo mode off)
+  const paymentsOff = gatewayConfig?.available === false;
+
   const handleInitiatePayment = async () => {
     setLoading(true);
     setErrorMessage('');
@@ -241,6 +244,23 @@ export default function PaymentModal({
         {step === 'checkout' && (
           <div>
             {/* Mode Banner */}
+            {paymentsOff ? (
+              <div role="status" style={{
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                background: 'rgba(237, 237, 237, 0.04)',
+                border: '1px solid var(--border-color)',
+                marginBottom: '1.25rem',
+                fontSize: '0.85rem',
+                lineHeight: 1.5,
+                color: 'var(--text-secondary)',
+              }}>
+                <strong style={{ display: 'block', color: 'var(--text-primary)', fontWeight: 500, marginBottom: '0.25rem' }}>
+                  Online payment isn't set up yet
+                </strong>
+                Your bill stays due. Pay your society admin directly for now, or come back here once online payment is switched on.
+              </div>
+            ) : (
             <div style={{
               padding: '0.75rem 1rem',
               borderRadius: '8px',
@@ -268,6 +288,7 @@ export default function PaymentModal({
                 </>
               )}
             </div>
+            )}
 
             {/* Item Card */}
             <div style={{
@@ -290,13 +311,19 @@ export default function PaymentModal({
                 borderTop: '1px dashed #233728',
                 paddingTop: '0.75rem',
               }}>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Total</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>{paymentsOff ? 'Amount due' : 'Total'}</span>
                 <span style={{ fontSize: '1.4rem', fontWeight: 500, color: '#00A651' }}>
                   ₹{parseFloat(paymentTarget.amount).toFixed(2)}
                 </span>
               </div>
             </div>
 
+            {paymentsOff ? (
+              <button type="button" className="btn btn-secondary btn-block" onClick={onClose}>
+                Close
+              </button>
+            ) : (
+            <>
             {/* Payment Method Selector */}
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
@@ -346,6 +373,8 @@ export default function PaymentModal({
                 <Zap size={16} /> Pay ₹{parseFloat(paymentTarget.amount).toFixed(2)}
               </button>
             </div>
+            </>
+            )}
           </div>
         )}
 
