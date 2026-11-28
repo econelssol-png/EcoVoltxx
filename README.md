@@ -60,7 +60,7 @@ Set these as environment variables on the host, or in `server/.env` locally. `se
 | `CORS_ORIGIN` | no | Your public address, like `https://ecovoltx.example.com` |
 | `CHARGER_SIMULATOR` | no | Simulated charging sessions; follows `DEMO_MODE` |
 | `API_RATE_LIMIT` | no | API requests per client address per 15 minutes; defaults to 1000. Sign-in stays limited to 30 attempts |
-| `PAYMENT_MODE` | no | `test` or `live`. Without Razorpay keys, online payment is off and bills stay due; the `mock` demo provider works only while `DEMO_MODE` is on |
+| `PAYMENT_MODE` | no | `test` or `live`. Must match the key (`rzp_test_` or `rzp_live_`), or online payment stays off; left empty, the key decides. Without Razorpay keys, online payment is off and bills stay due; the `mock` demo provider works only while `DEMO_MODE` is on |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | for payments | Razorpay API keys |
 | `RAZORPAY_WEBHOOK_SECRET` | for payments | Webhooks are refused until this is set |
 
@@ -115,8 +115,8 @@ It covers payments, refunds, the payment and webhook security rules, charger aut
 
 ## Known limitations
 
-- Visitor charging (`/app/public`) always uses the simulator, so it does not start real hardware chargers yet.
-- Razorpay has only been tested in mock mode so far.
+- Visitors pay the amount due offline; online payment is only for residents.
+- Razorpay has been tested end to end in test mode (payment and webhook). Live refunds have not been tried yet.
 - `package-lock.json` files are not committed, so hosts install the newest versions allowed by `package.json`.
 
 ## Credits

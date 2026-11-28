@@ -311,8 +311,10 @@ async function startServer() {
       await warnAboutDemoAccounts();
     }
 
-    const paymentProblem = require('./services/paymentService').getPaymentSetupProblem();
+    const paymentService = require('./services/paymentService');
+    const paymentProblem = paymentService.getPaymentSetupProblem();
     if (paymentProblem) console.warn(`[Payments] ${paymentProblem}`);
+    else console.log(`[Payments] ${paymentService.getGatewayConfig().description}`);
   } catch (err) {
     console.error('[DB] Database initialization notice:', err.message);
   }

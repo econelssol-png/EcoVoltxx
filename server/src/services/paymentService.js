@@ -57,18 +57,36 @@ function isRazorpayConfigured() {
  * - 'test'          : Razorpay test keys (default when keys are present)
  * - 'live'          : Razorpay live keys (PAYMENT_MODE=live)
  * - 'misconfigured' : PAYMENT_MODE asks for Razorpay but keys are missing
+ * - 'mismatch'      : PAYMENT_MODE says test but the key is a live key, or
+ *                     the other way round. Online payment is off, so real
+ *                     money is never recorded as a test payment
  * - 'unavailable'   : DEMO_MODE is off and no Razorpay keys are set. Online
  *                     payment is off and bills stay due, so nobody can mark a
  *                     real bill as paid with the demo provider
+ *
+ * Without PAYMENT_MODE, a Razorpay key picks the mode itself (rzp_live_ is
+ * live, rzp_test_ is test).
  */
 function resolvePaymentMode() {
   const configured = isRazorpayConfigured();
+  const keyKind = razorpayKeyKind();
   if (PAYMENT_MODE_ENV === 'live' || PAYMENT_MODE_ENV === 'test') {
-    return configured ? PAYMENT_MODE_ENV : 'misconfigured';
+    if (!configured) return 'misconfigured';
+    if (keyKind && keyKind !== PAYMENT_MODE_ENV) return 'mismatch';
+    return PAYMENT_MODE_ENV;
   }
   if (PAYMENT_MODE_ENV === 'mock') return config.demoMode ? 'mock' : 'unavailable';
-  if (configured) return 'test';
+  if (configured) return keyKind || 'test';
   return config.demoMode ? 'mock' : 'unavailable';
+}
+
+/**
+ * 'live' or 'test' from the Razorpay key prefix, or null for any other format
+ */
+function razorpayKeyKind() {
+  if (RAZORPAY_KEY_ID.startsWith('rzp_live_')) return 'live';
+  if (RAZORPAY_KEY_ID.startsWith('rzp_test_')) return 'test';
+  return null;
 }
 
 /**
@@ -79,10 +97,14 @@ function getPaymentSetupProblem() {
   if (mode === 'misconfigured') {
     return `PAYMENT_MODE is "${PAYMENT_MODE_ENV}" but RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are missing. Online payment is off.`;
   }
+  if (mode === 'mismatch') {
+    const keyKind = razorpayKeyKind();
+    return `PAYMENT_MODE is "${PAYMENT_MODE_ENV}" but RAZORPAY_KEY_ID is a ${keyKind} key (rzp_${keyKind}_). Online payment is off until they match: set PAYMENT_MODE to "${keyKind}", or use ${PAYMENT_MODE_ENV} keys.`;
+  }
   if (mode === 'unavailable') {
     return PAYMENT_MODE_ENV === 'mock'
       ? 'PAYMENT_MODE=mock is ignored while DEMO_MODE is off. Online payment is off until RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are set.'
-      : 'Online payment is off until RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are set. Bills stay due.';
+      : 'Online payment is off until RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are set.';
   }
   return null;
 }
@@ -134,6 +156,8 @@ function getGatewayConfig() {
     is_live: isLive,
     available,
     description,
+    // Why online payment is off (for the admin portal); null when it works
+    setup_problem: getPaymentSetupProblem(),
   };
 }
 
@@ -203,7 +227,7 @@ async function createPaymentOrder({ userId, societyId, invoiceId, sessionId, boo
   // The client's requested mode can never downgrade a real gateway to the mock provider.
   const mode = resolvePaymentMode();
 
-  if (mode === 'misconfigured' || mode === 'unavailable') {
+  if (mode === 'misconfigured' || mode === 'mismatch' || mode === 'unavailable') {
     throw new PaymentError(PAYMENTS_OFF_MESSAGE, 503);
   }
 

@@ -123,8 +123,9 @@ export default function PaymentsTab({ societyId, showToast, onOpenRefund, onOpen
               Online payment is off
             </strong>
             <span style={{ color: 'var(--text-secondary)' }}>
-              No Razorpay keys are set on the server, so residents can't pay in the app and their bills stay due.
-              Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Railway's variables to switch it on.
+              Residents can't pay in the app and their bills stay due.{' '}
+              {gatewayConfig.setup_problem || 'Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Railway\'s variables to switch it on.'}
+              {' '}Change it in Railway's variables, then deploy.
             </span>
           </div>
         </div>
