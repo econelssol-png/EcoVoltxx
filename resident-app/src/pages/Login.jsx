@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { Zap } from 'lucide-react';
+import PolicyLinks from '../components/PolicyLinks';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -99,6 +100,8 @@ export default function Login() {
           </div>
         )}
       </form>
+
+      <PolicyLinks style={{ marginTop: '32px' }} />
     </div>
   );
 }

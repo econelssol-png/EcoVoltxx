@@ -5,6 +5,8 @@
  * https://github.com/heydamir/unslop, CC BY 4.0.
  */
 
+const { BUSINESS, footerLinks } = require('./legal');
+
 const icon = (paths, size = 18) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 
@@ -206,9 +208,10 @@ function renderLanding({ demoMode }) {
     .demo .row code { color: var(--text-2); }
 
     footer { border-top: 1px solid var(--line); }
-    .foot { height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; color: var(--muted); }
+    .foot { min-height: 72px; padding: 16px 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; color: var(--muted); }
     .foot .live { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); }
-    .foot a { font-family: var(--mono); font-size: 12px; transition: color 150ms var(--ease); }
+    .foot-links { display: flex; flex-wrap: wrap; gap: 20px; }
+    .foot a { transition: color 150ms var(--ease); }
     .foot a:hover { color: var(--text); }
 
     /* One entrance on load */
@@ -234,7 +237,7 @@ function renderLanding({ demoMode }) {
     @media (max-width: 420px) {
       .phone { width: 100%; max-width: 312px; }
       .readout { font-size: 44px; }
-      .foot { flex-direction: column; justify-content: center; height: auto; padding: 20px 0; }
+      .foot { flex-direction: column; justify-content: center; height: auto; padding: 20px 0; text-align: center; }
     }
   </style>
 </head>
@@ -340,7 +343,8 @@ function renderLanding({ demoMode }) {
   <footer>
     <div class="wrap foot">
       <span class="live"><span class="light ok"></span>Platform online</span>
-      <span>EcoVoltX by EcoNelssol · <a href="/api/health">/api/health</a></span>
+      <nav class="foot-links" aria-label="Policies">${footerLinks()}</nav>
+      <span>© ${new Date().getFullYear()} ${BUSINESS.legalName}</span>
     </div>
   </footer>
 

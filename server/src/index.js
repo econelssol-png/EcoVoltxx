@@ -21,6 +21,7 @@ const db = require('./db/knex');
 const chargerSimulator = require('./services/chargerSimulator');
 const ocppService = require('./services/ocppService');
 const { renderLanding } = require('./views/landing');
+const { LEGAL_SLUGS, renderLegalPage } = require('./views/legal');
 
 // ── Create Express App ──────────────────────────────────
 const app = express();
@@ -208,6 +209,11 @@ if (fs.existsSync(residentBuildPath)) {
 app.get('/', (req, res) => {
   res.send(renderLanding({ demoMode: config.demoMode }));
 });
+
+// ── Contact and policy pages (/contact, /terms, /privacy, /refunds) ──
+for (const slug of LEGAL_SLUGS) {
+  app.get(`/${slug}`, (req, res) => res.send(renderLegalPage(slug)));
+}
 
 // ── Error Handling ──────────────────────────────────────
 app.use((err, req, res, next) => {

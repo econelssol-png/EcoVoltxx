@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PolicyLinks from '../components/PolicyLinks';
 import {
   Zap,
   MapPin,
@@ -403,6 +404,8 @@ export default function PublicChargers() {
           </div>
         </div>
       )}
+
+      <PolicyLinks style={{ marginTop: '32px', paddingBottom: '16px' }} />
     </div>
   );
 }

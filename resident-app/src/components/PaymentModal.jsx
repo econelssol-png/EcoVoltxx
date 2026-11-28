@@ -373,6 +373,12 @@ export default function PaymentModal({
                 <Zap size={16} /> Pay ₹{parseFloat(paymentTarget.amount).toFixed(2)}
               </button>
             </div>
+            <p style={{ marginTop: '0.75rem', fontSize: '0.75rem', lineHeight: 1.5, color: 'var(--text-muted)', textAlign: 'center' }}>
+              By paying you agree to the{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>terms</a>
+              {' '}and the{' '}
+              <a href="/refunds" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>refund policy</a>
+            </p>
             </>
             )}
           </div>
