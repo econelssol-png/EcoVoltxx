@@ -124,6 +124,17 @@ export default function ChargerDetail() {
             <p>This charger is under maintenance.</p>
           </div>
         )}
+
+        {charger.status === 'offline' && (
+          <>
+            <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+              <p>This charger is offline right now. You can still book a slot for later.</p>
+            </div>
+            <button className="btn btn-secondary btn-block" onClick={() => navigate(`/chargers/${charger.id}/book`)}>
+              <Calendar size={16} strokeWidth={1.5} /> Book a slot
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

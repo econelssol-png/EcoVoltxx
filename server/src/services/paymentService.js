@@ -210,6 +210,11 @@ async function createPaymentOrder({ userId, societyId, invoiceId, sessionId, boo
     if (!booking) throw new PaymentError('Booking not found or does not belong to user', 404);
     if (booking.status === 'cancelled') throw new PaymentError('Cannot pay for a cancelled booking');
 
+    const depositPaid = await db('payments')
+      .where({ booking_id: bookingId, status: 'success' })
+      .first();
+    if (depositPaid) throw new PaymentError('The deposit for this booking is already paid', 409);
+
     // Slot reservation deposit / booking fee (fixed ₹50)
     trustedAmount = 50.0; // standard slot booking deposit
     itemDescription = `Slot Booking Deposit #${booking.id} (${booking.booking_date} ${booking.start_time})`;
@@ -379,10 +384,13 @@ async function markPaymentSuccess(payment, { gatewayPaymentId, gatewaySignature 
   }
 
   // 2. If booking payment: touch booking
+  let bookingCancelled = false;
   if (payment.booking_id) {
     await db('bookings').where({ id: payment.booking_id }).update({
       updated_at: db.fn.now(),
     });
+    const booking = await db('bookings').where({ id: payment.booking_id }).first();
+    bookingCancelled = booking?.status === 'cancelled';
   }
 
   // 3. Create resident notification
@@ -413,7 +421,52 @@ async function markPaymentSuccess(payment, { gatewayPaymentId, gatewaySignature 
     }),
   });
 
+  // 5. A deposit that went through after its booking was cancelled (for
+  // example the payment window was closed mid-payment) is refunded at once
+  if (bookingCancelled) {
+    await refundBookingDeposit(payment.booking_id, 'Deposit paid after the booking was cancelled');
+  }
+
   return true;
+}
+
+/**
+ * Refund every paid deposit of a booking in full. Used when a booking is
+ * cancelled before its slot starts, and when a deposit arrives for a booking
+ * that is already cancelled.
+ *
+ * Returns null when nothing was paid, { refunded, amount, status } on success,
+ * or { failed, amount } when the gateway refused (an error is logged for the
+ * admin to refund it from Payments).
+ */
+async function refundBookingDeposit(bookingId, reason) {
+  const deposits = await db('payments').where({ booking_id: bookingId, status: 'success' });
+  if (!deposits.length) return null;
+
+  let refunded = 0;
+  let failed = 0;
+  let status = 'processed';
+  for (const deposit of deposits) {
+    try {
+      const result = await processRefund({ paymentId: deposit.id, adminUserId: null, reason });
+      refunded += parseFloat(result.refund_amount);
+      if (result.refund_status !== 'processed') status = result.refund_status;
+    } catch (err) {
+      failed += parseFloat(deposit.amount);
+      console.error(`[Payments] Automatic deposit refund failed for payment #${deposit.id}:`, err.message);
+      await db('integration_logs').insert({
+        society_id: deposit.society_id,
+        type: 'payment_error',
+        level: 'error',
+        source: deposit.gateway_provider,
+        message: `Automatic refund of the ₹${deposit.amount} deposit for booking #${bookingId} (payment #${deposit.id}) failed: ${err.message}. Refund it from Payments.`,
+        details: JSON.stringify({ bookingId, paymentId: deposit.id, reason }),
+      });
+    }
+  }
+
+  if (failed) return { failed: true, amount: failed };
+  return { refunded: true, amount: refunded, status };
 }
 
 /**
@@ -727,7 +780,7 @@ async function processRefund({ paymentId, adminUserId, reason, amount }) {
     type: 'payment_refund',
     level: 'warn',
     source: payment.gateway_provider,
-    message: `Refund of ₹${refundAmount} ${refundStatus} for payment #${payment.id} by admin #${adminUserId}`,
+    message: `Refund of ₹${refundAmount} ${refundStatus} for payment #${payment.id} ${adminUserId ? `by admin #${adminUserId}` : 'automatically'}`,
     details: JSON.stringify({ paymentId, refundId, refundAmount, refundStatus, reason }),
   });
 
@@ -751,5 +804,6 @@ module.exports = {
   verifyPaymentSignature,
   processWebhook,
   processRefund,
+  refundBookingDeposit,
   generateMockSignature,
 };

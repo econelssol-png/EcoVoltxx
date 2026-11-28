@@ -28,8 +28,15 @@ export default function Bookings() {
   const handleCancel = async (id) => {
     if (!confirm('Cancel this booking?')) return;
     try {
-      await api.cancelBooking(society.id, id);
+      const { deposit } = await api.cancelBooking(society.id, id);
       loadBookings();
+      if (deposit?.refunded) {
+        alert(`Booking cancelled. Your ₹${deposit.amount} deposit is being refunded to the account you paid from. It usually arrives within 5–7 working days.`);
+      } else if (deposit?.failed) {
+        alert(`Booking cancelled. The ₹${deposit.amount} deposit couldn't be refunded automatically, so your society admin has been alerted to refund it.`);
+      } else if (deposit?.kept) {
+        alert(`Booking cancelled. The slot had already started, so the ₹${deposit.amount} deposit isn't refunded.`);
+      }
     } catch (err) {
       alert(err.message);
     }

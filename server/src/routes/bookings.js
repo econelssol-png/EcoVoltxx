@@ -14,6 +14,8 @@ const db = require('../db/knex');
 const { authenticate } = require('../middleware/auth');
 const { enforceTenantIsolation } = require('../middleware/tenantIsolation');
 const config = require('../config');
+const localTime = require('../utils/localTime');
+const paymentService = require('../services/paymentService');
 
 const router = express.Router({ mergeParams: true });
 
@@ -81,21 +83,26 @@ router.post('/', authenticate, enforceTenantIsolation, async (req, res) => {
       return res.status(400).json({ error: 'Charger is not available for booking' });
     }
 
+    if (!localTime.DATE_RE.test(booking_date) || !localTime.TIME_RE.test(start_time) || !localTime.TIME_RE.test(end_time)) {
+      return res.status(400).json({ error: 'Use a date like 2026-12-01 and times like 18:30' });
+    }
+
     // Validate time range
     if (start_time >= end_time) {
       return res.status(400).json({ error: 'End time must be after start time' });
     }
 
-    // Validate booking date is not in the past
-    const today = new Date().toISOString().split('T')[0];
+    // Dates and times are India time; the server clock is UTC
+    const today = localTime.today();
     if (booking_date < today) {
       return res.status(400).json({ error: 'Cannot book for a past date' });
     }
+    if (localTime.hasStarted(booking_date, start_time)) {
+      return res.status(400).json({ error: 'That start time has already passed. Pick a later time' });
+    }
 
     // Check max advance booking
-    const maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + config.maxAdvanceBookingDays);
-    if (booking_date > maxDate.toISOString().split('T')[0]) {
+    if (booking_date > localTime.addDays(today, config.maxAdvanceBookingDays)) {
       return res.status(400).json({
         error: `Cannot book more than ${config.maxAdvanceBookingDays} days in advance`,
       });
@@ -211,12 +218,24 @@ router.delete('/:bookingId', authenticate, enforceTenantIsolation, async (req, r
       return res.status(400).json({ error: 'Cannot cancel a completed or already cancelled booking' });
     }
 
+    const slotStarted = localTime.hasStarted(booking.booking_date, booking.start_time);
+
     await db('bookings').where({ id: booking.id }).update({
       status: 'cancelled',
       updated_at: db.fn.now(),
     });
 
-    res.json({ message: 'Booking cancelled successfully' });
+    // Refund policy: a paid deposit is refunded in full if the booking is
+    // cancelled before its slot starts, and kept once the slot has started
+    let deposit = null;
+    if (!slotStarted) {
+      deposit = await paymentService.refundBookingDeposit(booking.id, 'Booking cancelled before the slot started');
+    } else {
+      const paid = await db('payments').where({ booking_id: booking.id, status: 'success' }).first();
+      if (paid) deposit = { kept: true, amount: parseFloat(paid.amount) };
+    }
+
+    res.json({ message: 'Booking cancelled successfully', deposit });
   } catch (err) {
     console.error('Cancel booking error:', err);
     res.status(500).json({ error: 'Failed to cancel booking' });

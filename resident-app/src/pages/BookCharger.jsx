@@ -5,6 +5,10 @@ import api from '../services/api';
 import { ArrowLeft, Calendar, CreditCard, ShieldCheck } from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
 
+// Dates and times on this page are the phone's local time (India time for residents)
+const localToday = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+const localNowTime = () => new Date().toTimeString().slice(0, 5); // HH:MM
+
 export default function BookCharger() {
   const { id } = useParams();
   const { society } = useAuth();
@@ -18,8 +22,7 @@ export default function BookCharger() {
   const [activePaymentTarget, setActivePaymentTarget] = useState(null);
 
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    setDate(today);
+    setDate(localToday());
     api.getCharger(society.id, id).then(d => setCharger(d.charger)).catch(console.error);
   }, [id]);
 
@@ -85,13 +88,13 @@ export default function BookCharger() {
       <form>
         <div className="form-group">
           <label className="form-label">Date</label>
-          <input type="date" className="form-input" value={date} onChange={e => setDate(e.target.value)} required min={new Date().toISOString().split('T')[0]} />
+          <input type="date" className="form-input" value={date} onChange={e => setDate(e.target.value)} required min={localToday()} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div className="form-group">
             <label className="form-label">Start time</label>
-            <input type="time" className="form-input" value={startTime} onChange={e => setStartTime(e.target.value)} required />
+            <input type="time" className="form-input" value={startTime} onChange={e => setStartTime(e.target.value)} required min={date === localToday() ? localNowTime() : undefined} />
           </div>
           <div className="form-group">
             <label className="form-label">End time</label>
@@ -153,9 +156,16 @@ export default function BookCharger() {
       {/* Payment Checkout Modal */}
       <PaymentModal
         isOpen={Boolean(activePaymentTarget)}
-        onClose={() => {
+        onClose={async () => {
+          // Closed without paying: release the slot instead of leaving an
+          // unpaid booking holding it. If the payment still goes through
+          // later, the server refunds the deposit for the cancelled booking.
+          const bookingId = activePaymentTarget?.id;
           setActivePaymentTarget(null);
-          navigate('/bookings');
+          if (bookingId) {
+            try { await api.cancelBooking(society.id, bookingId); } catch {}
+          }
+          setError("Payment wasn't completed, so the slot isn't booked. Try again, or book without the deposit.");
         }}
         paymentTarget={activePaymentTarget}
         onPaymentSuccess={() => {
